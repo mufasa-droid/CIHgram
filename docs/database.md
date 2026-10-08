@@ -102,11 +102,27 @@ In PostgreSQL RLS, checking a user's membership in a table policy (e.g., in `pro
 
 ---
 
-## 4. Migration Workflow
+---
+
+## 4. Directory Search & Admission Procedures
+
+### 4.1 Admission Procedures (`20261008000001_organization_admission.sql`)
+- `find_organization_by_domain(check_domain)`: Matches email domain against `organizations.allowed_domains`.
+- `admit_user_to_organization(...)`: Atomically creates profile and active membership with hardcoded role `'member'`.
+- `get_current_user_status()`: Returns admission and onboarding state for the calling user.
+
+### 4.2 Member Directory Procedures (`20261008000002_member_directory_search.sql`)
+- `search_organization_members(query_text, result_limit)`: Queries active peers within the caller's organization, automatically excluding the caller and projecting only safe fields (`id`, `username`, `display_name`, `avatar_url`).
+- `get_organization_member_by_username(target_username)`: Resolves a member profile strictly within the caller's organization.
+- **Indexes**: Added B-Tree indexes on `lower(display_name)` and `lower(username)` to accelerate case-insensitive directory lookups.
+
+---
+
+## 5. Migration Workflow
 
 Migrations are managed with the Supabase CLI:
 
-### 4.1 Applying Migrations Locally
+### 5.1 Applying Migrations Locally
 ```bash
 # Start local Supabase containers (requires Docker)
 npx supabase start
@@ -115,21 +131,23 @@ npx supabase start
 npx supabase db reset
 ```
 
-### 4.2 Creating New Migrations
+### 5.2 Creating New Migrations
 ```bash
 npx supabase migration new <migration_name>
 ```
 
-### 4.3 Generating TypeScript Types
+### 5.3 Generating TypeScript Types
 ```bash
 npx supabase gen types typescript --local > src/lib/supabase/types.ts
 ```
 
 ---
 
-## 5. Security & Isolation Invariants
+## 6. Security & Isolation Invariants
 
 1. **Zero Hardcoded Organizations**: The platform data model is multi-tenant by design. Tenant matching uses `allowed_domains` rather than hardcoded logic.
 2. **Identity Separation**: Public profile identities (`profiles`) are decoupled from authentication identifiers (`auth.users`).
 3. **Cross-Tenant Isolation**: A user cannot read profiles or membership information from organizations they do not actively belong to.
 4. **Self-Service Boundaries**: Normal members cannot elevate their own roles, alter membership statuses, or inject themselves into unauthorized organizations.
+5. **Caller Exclusion & Bounded Results**: Directory queries exclude the calling user and clamp results to 100 maximum records.
+

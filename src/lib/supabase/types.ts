@@ -306,7 +306,31 @@ export type Database = {
         Args: Record<string, never>;
         Returns: Json;
       };
+      search_organization_members: {
+        Args: {
+          query_text?: string;
+          result_limit?: number;
+        };
+        Returns: {
+          id: string;
+          username: string;
+          display_name: string;
+          avatar_url: string | null;
+        }[];
+      };
+      get_organization_member_by_username: {
+        Args: {
+          target_username: string;
+        };
+        Returns: {
+          id: string;
+          username: string;
+          display_name: string;
+          avatar_url: string | null;
+        }[];
+      };
     };
+
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

@@ -42,3 +42,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ai / agent / prompt context files
+/context/
+/implementation-prompts/
+AGENTS.md
+.agents/
+skills/
+
