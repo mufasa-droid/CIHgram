@@ -4,7 +4,7 @@ import type { Database } from "./types";
 
 /**
  * Updates session in middleware and ensures cookies are refreshed.
- * Returns response object with updated cookies.
+ * Enforces edge-level route protection for protected paths.
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({
@@ -39,8 +39,22 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Refresh auth token if expired
-  await supabase.auth.getUser();
+  // Refresh auth token
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Protect /app paths from unauthenticated access
+  if (request.nextUrl.pathname.startsWith("/app") && !user) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", request.nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Redirect authenticated user from /login to /app
+  if (request.nextUrl.pathname === "/login" && user) {
+    return NextResponse.redirect(new URL("/app", request.url));
+  }
 
   return response;
 }

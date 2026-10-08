@@ -268,5 +268,35 @@ export type Database = {
         };
       };
     };
+    Functions: {
+      find_organization_by_domain: {
+        Args: {
+          check_domain: string;
+        };
+        Returns: {
+          id: string;
+          name: string;
+          slug: string;
+        }[];
+      };
+      admit_user_to_organization: {
+        Args: {
+          user_username: string;
+          user_display_name: string;
+          user_avatar_url?: string | null;
+        };
+        Returns: {
+          success: boolean;
+          user_id: string;
+          organization_id: string;
+          organization_name: string;
+          username: string;
+        };
+      };
+      get_current_user_status: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+    };
   };
 };
