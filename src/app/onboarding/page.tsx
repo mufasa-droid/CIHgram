@@ -4,10 +4,14 @@ import { Container } from "@/components/ui/container";
 import { Surface } from "@/components/ui/surface";
 import { OnboardingForm } from "./onboarding-form";
 
+export const instant = false;
+
 export const metadata = {
   title: "Complete Your Profile — CIH Messenger",
   description: "Set up your public organization profile.",
 };
+
+
 
 export default async function OnboardingPage() {
   const status = await getUserAdmissionStatus();

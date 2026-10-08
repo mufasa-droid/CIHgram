@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, requireUser } from "@/lib/auth/session";
-import { extractEmailDomain, isDomainAllowed } from "@/lib/auth/domains";
+import { extractEmailDomain } from "@/lib/auth/domains";
+
 import { usernameSchema, displayNameSchema } from "@/lib/validation/common";
 import { ValidationError, ConflictError, AuthorizationError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
@@ -64,42 +65,41 @@ export async function getUserAdmissionStatus(): Promise<UserAdmissionStatus> {
   const supabase = await createClient();
 
   // 1. Check if user already has an active profile and membership
-  const [profileRes, memberRes] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, username, display_name, avatar_url")
-      .eq("id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("organization_members")
-      .select("organization_id, role, status")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle(),
-  ]);
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select()
+    .eq("id", user.id)
+    .maybeSingle();
 
-  if (profileRes.data && memberRes.data) {
+  const { data: memberData } = await supabase
+    .from("organization_members")
+    .select()
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (profileData && memberData) {
     // User is fully admitted; fetch organization details
-    const orgRes = await supabase
+    const { data: orgData } = await supabase
       .from("organizations")
-      .select("id, name, slug")
-      .eq("id", memberRes.data.organization_id)
+      .select()
+      .eq("id", memberData.organization_id)
       .maybeSingle();
 
-    if (orgRes.data) {
+    if (orgData) {
       return {
         state: "admitted",
         user,
         profile: {
-          username: profileRes.data.username,
-          displayName: profileRes.data.display_name,
-          avatarUrl: profileRes.data.avatar_url,
+          username: profileData.username,
+          displayName: profileData.display_name,
+          avatarUrl: profileData.avatar_url,
         },
         organization: {
-          id: orgRes.data.id,
-          name: orgRes.data.name,
-          slug: orgRes.data.slug,
-          role: memberRes.data.role,
+          id: orgData.id,
+          name: orgData.name,
+          slug: orgData.slug,
+          role: memberData.role,
         },
       };
     }

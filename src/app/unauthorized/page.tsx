@@ -3,10 +3,14 @@ import { Surface } from "@/components/ui/surface";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/session";
 
+export const instant = false;
+
 export const metadata = {
   title: "Access Restricted — CIH Messenger",
   description: "Account domain not authorized for this workspace.",
 };
+
+
 
 export default async function UnauthorizedPage() {
   const user = await getCurrentUser();

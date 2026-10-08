@@ -4,10 +4,14 @@ import { Container } from "@/components/ui/container";
 import { Surface } from "@/components/ui/surface";
 import { Button } from "@/components/ui/button";
 
+export const instant = false;
+
 export const metadata = {
   title: "Workspace — CIH Messenger",
   description: "Anonymous Messaging Platform Workspace",
 };
+
+
 
 export default async function AppPage() {
   const status = await getUserAdmissionStatus();

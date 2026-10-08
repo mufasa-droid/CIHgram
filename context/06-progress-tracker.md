@@ -51,21 +51,28 @@ model, and implementation workflow before feature implementation.
 -   Comprehensive Row Level Security (RLS) policies implemented on all three core tables.
 -   Database architecture documentation created (`docs/database.md`).
 -   Database schema and security invariant tests validated (24 tests passing).
+-   Authentication and Google OAuth domain matching onboarding completed (`implementation-prompts/004 — Google-OAuth-Authentication-&-Organization-Onboarding.md`).
+-   Domain verification and suffix spoofing defense implemented and tested (`src/lib/auth/domains.ts`, 100% test coverage).
+-   Server-side admission migration created (`supabase/migrations/20261008000001_organization_admission.sql`) with atomic `admit_user_to_organization` function and fixed `search_path`.
+-   Multi-state routing implemented (`/login`, `/auth/callback`, `/auth/signout`, `/unauthorized`, `/onboarding`, `/app`).
+-   Editorial onboarding page and server action implemented with Zod validation.
+-   Authentication architecture guide documented (`docs/authentication.md`).
+-   Authentication and onboarding test suite validated (39 unit tests passing across 7 suites; 5 Playwright E2E tests passing).
 
 ## In progress
 
--   Authentication flow and Google OAuth domain-matching onboarding.
+-   None (Prompt 004 completed).
 
 ## Next up
 
-1.  Implement Google OAuth authentication flow with domain matching.
-2.  Implement discovery and directory search.
-3.  Implement E2EE cryptographic foundation (Libsodium Sealed Box).
-4.  Implement message composer and send flow.
-5.  Implement inbox and recipient decryption.
-6.  Implement profile/settings.
-7.  Implement block/report/moderation.
-8.  Testing and production hardening.
+1.  Implement discovery and directory search (Prompt 005).
+2.  Implement E2EE cryptographic foundation (Libsodium Sealed Box).
+3.  Implement message composer and send flow.
+4.  Implement inbox and recipient decryption.
+5.  Implement profile/settings.
+6.  Implement block/report/moderation.
+7.  Testing and production hardening.
+
 
 ## Open questions
 
@@ -143,6 +150,14 @@ store remains strictly ciphertext.
 Recipients soft-delete from inbox (`deleted_by_recipient = true`). Ciphertext
 is purged after 30 days unless referenced by an open abuse investigation.
 
+### AD-015 --- Server-enforced atomic organization admission procedure
+
+Organization onboarding and membership initialization are executed via a single
+PostgreSQL `SECURITY DEFINER` function (`admit_user_to_organization`) with a fixed
+`search_path`. Membership role is strictly hardcoded to `'member'` in the procedure;
+client-supplied roles or organization IDs are strictly rejected. Suffix spoofing is
+prevented via exact domain extraction and equality matching against `allowed_domains`.
+
 ## Session notes
 
 ### Initial architecture session
@@ -183,6 +198,20 @@ all three tables, enforcing organization isolation and self-service mutation bou
 Synchronized TypeScript database types and created comprehensive architecture guide in
 `docs/database.md`. Added automated schema and security invariant tests in `src/lib/supabase/schema.test.ts`
 (24 tests passing). Ready for authentication flow implementation.
+
+### Google OAuth authentication and organization onboarding session
+
+Prompt 004 executed. Implemented Google OAuth authentication flow with server-side organization
+admission via verified email domains. Built pure domain extraction and suffix-spoofing defense
+in `src/lib/auth/domains.ts` (100% test coverage). Created migration `20261008000001_organization_admission.sql`
+with atomic `admit_user_to_organization`, `find_organization_by_domain`, and `get_current_user_status`
+routines with fixed `search_path`. Implemented Next.js route handlers (`/auth/login`, `/auth/callback`,
+`/auth/signout`), access-restricted screen (`/unauthorized`), editorial onboarding flow (`/onboarding`,
+`OnboardingForm`, `completeOnboarding` server action), and authenticated workspace shell (`/app`).
+Authored architectural guide in `docs/authentication.md`. Validated all test suites: Vitest unit tests
+(39 passing across 7 suites), Playwright E2E tests (5 passing), TypeScript compilation (`tsc --noEmit`),
+ESLint (`eslint`), and Next.js production build (`next build`).
+
 
 
 

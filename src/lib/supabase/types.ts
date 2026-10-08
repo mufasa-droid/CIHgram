@@ -37,6 +37,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       organizations: {
         Row: {
@@ -63,6 +64,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       organization_members: {
         Row: {
@@ -95,6 +97,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       public_keys: {
         Row: {
@@ -121,6 +124,7 @@ export type Database = {
           is_active?: boolean;
           created_at?: string;
         };
+        Relationships: [];
       };
       messages: {
         Row: {
@@ -162,6 +166,7 @@ export type Database = {
           deleted_by_recipient?: boolean;
           created_at?: string;
         };
+        Relationships: [];
       };
       blocks: {
         Row: {
@@ -182,6 +187,7 @@ export type Database = {
           blocked_id?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       reports: {
         Row: {
@@ -220,6 +226,7 @@ export type Database = {
           created_at?: string;
           resolved_at?: string | null;
         };
+        Relationships: [];
       };
       moderation_actions: {
         Row: {
@@ -252,6 +259,7 @@ export type Database = {
           created_at?: string;
           expires_at?: string | null;
         };
+        Relationships: [];
       };
     };
     Views: {
@@ -266,6 +274,7 @@ export type Database = {
           is_read: boolean;
           is_starred: boolean;
         };
+        Relationships: [];
       };
     };
     Functions: {
@@ -283,7 +292,7 @@ export type Database = {
         Args: {
           user_username: string;
           user_display_name: string;
-          user_avatar_url?: string | null;
+          user_avatar_url: string | null;
         };
         Returns: {
           success: boolean;
@@ -298,5 +307,7 @@ export type Database = {
         Returns: Json;
       };
     };
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };

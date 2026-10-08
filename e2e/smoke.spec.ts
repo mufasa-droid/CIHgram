@@ -23,4 +23,25 @@ test.describe("Application Foundation Smoke Tests", () => {
     const googleBtn = page.getByRole("button", { name: /continue with google/i });
     await expect(googleBtn).toBeVisible();
   });
+
+  test("loads unauthorized access screen with expected messaging", async ({ page }) => {
+    await page.goto("/unauthorized");
+
+    const heading = page.getByRole("heading", { level: 1, name: /access restricted/i });
+    await expect(heading).toBeVisible();
+
+    const signoutBtn = page.getByRole("button", { name: /sign out/i });
+    await expect(signoutBtn).toBeVisible();
+  });
+
+  test("redirects unauthenticated user accessing /app to /login", async ({ page }) => {
+    await page.goto("/app");
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("redirects unauthenticated user accessing /onboarding to /login", async ({ page }) => {
+    await page.goto("/onboarding");
+    await expect(page).toHaveURL(/\/login/);
+  });
 });
+
