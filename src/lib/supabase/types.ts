@@ -329,6 +329,38 @@ export type Database = {
           avatar_url: string | null;
         }[];
       };
+      register_public_key: {
+        Args: {
+          p_public_key: string;
+          p_algorithm?: string;
+        };
+        Returns: Json;
+      };
+      get_active_public_key: {
+        Args: {
+          p_target_user_id: string;
+        };
+        Returns: {
+          id: string;
+          user_id: string;
+          public_key: string;
+          algorithm: string;
+          created_at: string;
+        }[];
+      };
+      get_user_key_status: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      send_anonymous_message: {
+        Args: {
+          p_recipient_id: string;
+          p_key_id: string;
+          p_ciphertext: string;
+          p_protocol_version?: number;
+        };
+        Returns: Json;
+      };
     };
 
     Enums: Record<string, never>;

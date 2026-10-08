@@ -5,6 +5,7 @@ export type ErrorCode =
   | "VALIDATION_ERROR"
   | "RATE_LIMITED"
   | "CONFLICT"
+  | "CRYPTO_ERROR"
   | "INTERNAL_ERROR";
 
 export class AppError extends Error {
@@ -66,6 +67,12 @@ export class RateLimitError extends AppError {
 export class ConflictError extends AppError {
   constructor(message = "Resource conflict") {
     super(message, "CONFLICT", 409);
+  }
+}
+
+export class CryptoError extends AppError {
+  constructor(message = "Cryptographic operation failed", details?: unknown) {
+    super(message, "CRYPTO_ERROR", 400, true, details);
   }
 }
 

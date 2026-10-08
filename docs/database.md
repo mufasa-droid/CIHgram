@@ -72,6 +72,55 @@ Associates platform users with organizations and defines roles and membership st
 - `idx_organization_members_org`: Index on `organization_id`.
 - `idx_organization_members_active_lookup`: Partial index on `(organization_id, user_id)` WHERE `status = 'active'`.
 
+### 2.4 `public.public_keys`
+
+Stores Curve25519 (X25519) 32-byte public encryption keys for authenticated users.
+
+| Column | Type | Nullable | Default | Description |
+| :--- | :--- | :---: | :--- | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | Primary Key |
+| `user_id` | `UUID` | No | — | FK `public.profiles(id)` ON DELETE CASCADE |
+| `public_key` | `TEXT` | No | — | 32-byte Base64-encoded Curve25519 public key |
+| `algorithm` | `TEXT` | No | `'x25519-xsalsa20poly1305'` | Cryptographic suite identifier |
+| `is_active` | `BOOLEAN` | No | `true` | Active key flag |
+| `created_at` | `TIMESTAMPTZ` | No | `NOW()` | Timestamp key was registered |
+
+**Constraints & Indexes**:
+- `public_key_format_check`: Strictly 44 characters Base64 matching `^[A-Za-z0-9+/]{43}=$`.
+- `algorithm_check`: Must equal `'x25519-xsalsa20poly1305'`.
+- `idx_public_keys_unique_active_user`: Partial unique index on `(user_id) WHERE is_active = true` (enforces at most one active key per user).
+- `idx_public_keys_user_id`: B-Tree index on `user_id`.
+- `idx_public_keys_user_created`: B-Tree index on `(user_id, created_at DESC)`.
+- **Privacy & Security Guarantee**: Strictly public key material. NEVER stores private keys, recovery phrases, seeds, or passwords.
+
+### 2.5 `public.messages`
+
+Stores end-to-end encrypted message ciphertext envelopes.
+
+| Column | Type | Nullable | Default | Description |
+| :--- | :--- | :---: | :--- | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | Primary Key |
+| `sender_id` | `UUID` | No | — | FK `public.profiles(id)` ON DELETE CASCADE |
+| `recipient_id` | `UUID` | No | — | FK `public.profiles(id)` ON DELETE CASCADE |
+| `organization_id` | `UUID` | No | — | FK `public.organizations(id)` ON DELETE CASCADE |
+| `key_id` | `UUID` | No | — | FK `public.public_keys(id)` ON DELETE RESTRICT |
+| `ciphertext` | `TEXT` | No | — | Base64-encoded Libsodium sealed box ciphertext |
+| `protocol_version` | `INTEGER` | No | `1` | Supported protocol version (`1`) |
+| `is_read` | `BOOLEAN` | No | `false` | Read receipt flag |
+| `is_starred` | `BOOLEAN` | No | `false` | Recipient star flag |
+| `deleted_by_recipient` | `BOOLEAN` | No | `false` | Soft-delete flag |
+| `created_at` | `TIMESTAMPTZ` | No | `NOW()` | Timestamp sent |
+
+**Constraints & Indexes**:
+- `sender_recipient_distinct_check`: `CHECK (sender_id <> recipient_id)` (prohibits self-messaging).
+- `protocol_version_check`: `CHECK (protocol_version = 1)`.
+- `ciphertext_size_check`: `CHECK (length(trim(ciphertext)) >= 48 AND length(ciphertext) <= 32768)` (bounded payload).
+- `idx_messages_recipient_inbox`: Partial index on `(recipient_id, created_at DESC) WHERE deleted_by_recipient = false`.
+- `idx_messages_sender_rate_limit`: Index on `(sender_id, created_at DESC)`.
+- `idx_messages_organization_id`: Index on `organization_id`.
+- `idx_messages_key_id`: Index on `key_id`.
+- **Anonymity & Privacy Guarantee**: Direct `SELECT` permission on this table is completely **revoked** from `authenticated` users to protect `sender_id`. Zero plaintext, zero subjects, zero previews.
+
 ---
 
 ## 3. Row Level Security (RLS) Philosophy
@@ -99,6 +148,14 @@ In PostgreSQL RLS, checking a user's membership in a table policy (e.g., in `pro
 | `organization_members` | `INSERT` | `authenticated` | `is_org_admin(organization_id, auth.uid())` |
 | `organization_members` | `UPDATE` | `authenticated` | `is_org_admin(organization_id, auth.uid())` |
 | `organization_members` | `DELETE` | `authenticated` | `is_org_admin(organization_id, auth.uid()) OR user_id = auth.uid()` |
+| `public_keys` | `SELECT` | `authenticated` | `user_id = auth.uid() OR shares_active_organization(user_id, auth.uid())` |
+| `public_keys` | `INSERT` | `authenticated` | `user_id = auth.uid()` |
+| `public_keys` | `UPDATE` | `authenticated` | `user_id = auth.uid()` |
+| `public_keys` | `DELETE` | `authenticated` | `user_id = auth.uid()` |
+| `messages` | `SELECT` | `authenticated` | **REVOKED** (Direct table SELECT disallowed; read via security barrier view in Prompt 008) |
+| `messages` | `INSERT` | `authenticated` | `sender_id = auth.uid()` |
+| `messages` | `UPDATE` | `authenticated` | `recipient_id = auth.uid()` |
+| `messages` | `DELETE` | — | Restricted to automated ciphertext purge routines. |
 
 ---
 
@@ -115,6 +172,14 @@ In PostgreSQL RLS, checking a user's membership in a table policy (e.g., in `pro
 - `search_organization_members(query_text, result_limit)`: Queries active peers within the caller's organization, automatically excluding the caller and projecting only safe fields (`id`, `username`, `display_name`, `avatar_url`).
 - `get_organization_member_by_username(target_username)`: Resolves a member profile strictly within the caller's organization.
 - **Indexes**: Added B-Tree indexes on `lower(display_name)` and `lower(username)` to accelerate case-insensitive directory lookups.
+
+### 4.3 Public Key Infrastructure Procedures (`20261008000003_public_keys_schema.sql`)
+- `register_public_key(p_public_key, p_algorithm)`: Atomically deactivates any existing active key for the calling user, validates Base64 format and 44-character length, and inserts the new active key. Identity is anchored strictly to `auth.uid()`.
+- `get_active_public_key(p_target_user_id)`: Safely resolves the active public key of a recipient, enforcing that the recipient must share an active organization membership with the caller.
+- `get_user_key_status()`: Queries the caller's active public key existence and total key count to manage client identity reconciliation safely.
+
+### 4.4 Anonymous Messaging Procedures (`20261008000004_messages_schema.sql`)
+- `send_anonymous_message(p_recipient_id, p_key_id, p_ciphertext, p_protocol_version)`: Authenticates sender from session `auth.uid()`, enforces distinct sender/recipient, validates shared active organization membership, verifies recipient's active public key ID, enforces sliding-window rate limits (max 5/min, max 50/day), and atomically persists the encrypted envelope into `public.messages`.
 
 ---
 

@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Surface } from "@/components/ui/surface";
+import { MessageComposer } from "@/components/composer";
 import { searchMembersAction } from "@/lib/directory/actions";
 import type { PublicMember } from "@/lib/directory/types";
 
@@ -22,6 +22,7 @@ export function MemberDirectory({
   const [searchResults, setSearchResults] = React.useState<PublicMember[] | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [selectedRecipient, setSelectedRecipient] = React.useState<PublicMember | null>(null);
+  const [isComposerOpen, setIsComposerOpen] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const members = query.trim() ? (searchResults ?? []) : initialMembers;
@@ -96,32 +97,15 @@ export function MemberDirectory({
         </div>
       </div>
 
-      {/* Recipient Selection Notice / Modal Boundary */}
-      {selectedRecipient && (
-        <Surface className="p-4 border-zinc-900/10 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900 text-xs font-medium text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900">
-              {selectedRecipient.displayName.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <p className="text-xs font-medium text-zinc-950 dark:text-zinc-50">
-                Recipient selected: <span className="font-semibold">{selectedRecipient.displayName}</span> (@{selectedRecipient.username})
-              </p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Anonymous message composer will be available in the upcoming release.
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedRecipient(null)}
-            className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            Clear selection
-          </Button>
-        </Surface>
-      )}
+      {/* Transient Anonymous Message Composer */}
+      <MessageComposer
+        recipient={selectedRecipient}
+        isOpen={isComposerOpen}
+        onClose={() => {
+          setIsComposerOpen(false);
+          setSelectedRecipient(null);
+        }}
+      />
 
       {/* Error state */}
       {error && (
@@ -150,7 +134,6 @@ export function MemberDirectory({
                     className="h-10 w-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-800"
                   />
                 ) : (
-
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
                     {member.displayName.charAt(0).toUpperCase()}
                   </div>
@@ -168,7 +151,10 @@ export function MemberDirectory({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setSelectedRecipient(member)}
+                onClick={() => {
+                  setSelectedRecipient(member);
+                  setIsComposerOpen(true);
+                }}
                 aria-label={`Send anonymous message to ${member.displayName}`}
                 className="shrink-0 text-xs font-normal"
               >
