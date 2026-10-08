@@ -1,0 +1,42 @@
+{
+  "name": "cih-message-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.49.1",
+    "lucide-react": "^1.16.0",
+    "motion": "^12.4.7",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@next/swc-win32-x64-msvc": "^16.4.0",
+    "@playwright/test": "^1.50.1",
+    "@tailwindcss/turbopack": "^4",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.0",
+    "jsdom": "^26.0.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^3.0.7"
+  }
+}
