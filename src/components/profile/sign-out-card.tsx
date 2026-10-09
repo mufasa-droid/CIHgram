@@ -14,6 +14,8 @@ export function SignOutCard() {
     if (isSigningOut) return;
     setIsSigningOut(true);
 
+    const form = e.currentTarget;
+
     try {
       // Clear sensitive private key from IndexedDB and zeroize memory before logout
       await clearLocalIdentity();
@@ -22,7 +24,9 @@ export function SignOutCard() {
     }
 
     // Submit the native signout form to clear server session cookies
-    e.currentTarget.submit();
+    if (form) {
+      HTMLFormElement.prototype.submit.call(form);
+    }
   };
 
   return (

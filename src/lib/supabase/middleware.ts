@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isDevMockAuthEnabled } from "@/lib/auth/dev-mock";
 import type { Database } from "./types";
 
 /**
@@ -44,8 +45,8 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protect /app paths from unauthenticated access
-  if (request.nextUrl.pathname.startsWith("/app") && !user) {
+  // Protect /app paths from unauthenticated access (bypassed in development mock mode)
+  if (!isDevMockAuthEnabled() && request.nextUrl.pathname.startsWith("/app") && !user) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);

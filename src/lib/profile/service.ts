@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUserAdmissionStatus } from "@/lib/auth/onboarding";
+import { isDevMockAuthEnabled, DEV_MOCK_PROFILE_SETTINGS } from "@/lib/auth/dev-mock";
 import { updateProfileSchema } from "./validation";
 import { AuthorizationError, ConflictError, ValidationError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
@@ -21,6 +22,13 @@ export async function getUserProfileAndAccount(): Promise<ProfileSettingsData> {
     throw new AuthorizationError(
       "You must be an active member of an organization to view your profile settings."
     );
+  }
+
+  if (isDevMockAuthEnabled()) {
+    return {
+      profile: { ...DEV_MOCK_PROFILE_SETTINGS.profile },
+      account: { ...DEV_MOCK_PROFILE_SETTINGS.account },
+    };
   }
 
   const supabase = await createClient();
@@ -97,6 +105,16 @@ export async function updateUserProfile(rawInput: unknown): Promise<UserProfile>
   }
 
   const { displayName, username, bio, avatarUrl } = parsed.data;
+
+  if (isDevMockAuthEnabled()) {
+    DEV_MOCK_PROFILE_SETTINGS.profile.displayName = displayName;
+    DEV_MOCK_PROFILE_SETTINGS.profile.username = username;
+    DEV_MOCK_PROFILE_SETTINGS.profile.bio = bio ?? null;
+    DEV_MOCK_PROFILE_SETTINGS.profile.avatarUrl = avatarUrl ?? null;
+    DEV_MOCK_PROFILE_SETTINGS.profile.updatedAt = new Date().toISOString();
+    return { ...DEV_MOCK_PROFILE_SETTINGS.profile };
+  }
+
   const supabase = await createClient();
 
   // If username is changing, verify it is not already claimed by another user

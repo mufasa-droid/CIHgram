@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { AuthenticationError } from "@/lib/errors";
+import { isDevMockAuthEnabled, DEV_MOCK_USER, DEV_MOCK_SESSION } from "./dev-mock";
 import type { User, Session } from "@supabase/supabase-js";
 
 /**
@@ -8,6 +9,10 @@ import type { User, Session } from "@supabase/supabase-js";
  * Returns null if not authenticated.
  */
 export async function getCurrentUser(): Promise<User | null> {
+  if (isDevMockAuthEnabled()) {
+    return DEV_MOCK_USER;
+  }
+
   try {
     const supabase = await createClient();
     const {
@@ -30,6 +35,10 @@ export async function getCurrentUser(): Promise<User | null> {
  * Useful when session metadata or expiry needs to be inspected.
  */
 export async function getCurrentSession(): Promise<Session | null> {
+  if (isDevMockAuthEnabled()) {
+    return DEV_MOCK_SESSION;
+  }
+
   try {
     const supabase = await createClient();
     const {

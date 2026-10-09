@@ -28,6 +28,8 @@ export function WorkspaceHeader({
     if (isSigningOut) return;
     setIsSigningOut(true);
 
+    const form = e.currentTarget;
+
     try {
       // Clear sensitive private key from IndexedDB and zeroize memory before logout
       await clearLocalIdentity();
@@ -36,7 +38,9 @@ export function WorkspaceHeader({
     }
 
     // Submit the native signout form
-    e.currentTarget.submit();
+    if (form) {
+      HTMLFormElement.prototype.submit.call(form);
+    }
   };
 
   return (

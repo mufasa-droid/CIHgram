@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import {
+  isDevMockAuthEnabled,
+  DEV_MOCK_PUBLIC_KEY,
+  DEV_MOCK_KEY_STATUS,
+} from "@/lib/auth/dev-mock";
 import { AuthenticationError, NotFoundError, ValidationError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { isValidPublicKey } from "./sodium";
@@ -21,6 +26,17 @@ export async function registerPublicKey(publicKeyBase64: string): Promise<Public
     throw new ValidationError(
       "Invalid public key format. Expected a 32-byte Base64-encoded X25519 key."
     );
+  }
+
+  if (isDevMockAuthEnabled()) {
+    return {
+      id: "00000000-0000-4000-c000-000000000001",
+      userId: user.id,
+      publicKey: publicKeyBase64.trim(),
+      algorithm: CRYPTO_CONSTANTS.ALGORITHM,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
   }
 
   const supabase = await createClient();
@@ -79,6 +95,17 @@ export async function getRecipientPublicKey(
     throw new ValidationError("Recipient user ID is required");
   }
 
+  if (isDevMockAuthEnabled()) {
+    return {
+      id: "00000000-0000-4000-c000-000000000002",
+      userId: recipientUserId,
+      publicKey: DEV_MOCK_PUBLIC_KEY,
+      algorithm: CRYPTO_CONSTANTS.ALGORITHM,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
   const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("get_active_public_key", {
@@ -123,6 +150,10 @@ export async function getUserKeyStatus(): Promise<UserKeyStatus> {
       createdAt: null,
       keyCount: 0,
     };
+  }
+
+  if (isDevMockAuthEnabled()) {
+    return DEV_MOCK_KEY_STATUS;
   }
 
   const supabase = await createClient();

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUserAdmissionStatus } from "@/lib/auth/onboarding";
+import { isDevMockAuthEnabled, DEV_MOCK_DIRECTORY_MEMBERS } from "@/lib/auth/dev-mock";
 import { searchQuerySchema } from "./validation";
 import { AuthorizationError, ValidationError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
@@ -36,6 +37,22 @@ export async function getDirectoryMembers(
 
   const cleanQuery = parsedQuery.data;
   const clampedLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
+
+  if (isDevMockAuthEnabled()) {
+    const q = cleanQuery.toLowerCase();
+    const filtered = DEV_MOCK_DIRECTORY_MEMBERS.filter(
+      (m) =>
+        !q ||
+        m.username.toLowerCase().includes(q) ||
+        m.displayName.toLowerCase().includes(q)
+    ).slice(0, clampedLimit);
+
+    return {
+      members: filtered,
+      organizationName: status.organization.name,
+      organizationId: status.organization.id,
+    };
+  }
 
   const supabase = await createClient();
 
@@ -83,6 +100,13 @@ export async function getMemberByUsername(
   const cleanUsername = username.trim().toLowerCase();
   if (!cleanUsername) {
     return null;
+  }
+
+  if (isDevMockAuthEnabled()) {
+    const found = DEV_MOCK_DIRECTORY_MEMBERS.find(
+      (m) => m.username.toLowerCase() === cleanUsername
+    );
+    return found || null;
   }
 
   const supabase = await createClient();

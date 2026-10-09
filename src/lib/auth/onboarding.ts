@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, requireUser } from "@/lib/auth/session";
 import { extractEmailDomain } from "@/lib/auth/domains";
+import { isDevMockAuthEnabled, DEV_MOCK_ADMISSION_STATUS } from "./dev-mock";
 
 import { usernameSchema, displayNameSchema } from "@/lib/validation/common";
 import { ValidationError, ConflictError, AuthorizationError } from "@/lib/errors";
@@ -57,6 +58,10 @@ export function generateSuggestedUsername(email?: string, name?: string): string
  * Never trusts client headers or client query parameters.
  */
 export async function getUserAdmissionStatus(): Promise<UserAdmissionStatus> {
+  if (isDevMockAuthEnabled()) {
+    return DEV_MOCK_ADMISSION_STATUS;
+  }
+
   const user = await getCurrentUser();
   if (!user || !user.email) {
     return { state: "unauthenticated" };

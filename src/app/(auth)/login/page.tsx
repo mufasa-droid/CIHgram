@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { Surface } from "@/components/ui/surface";
 import { Button } from "@/components/ui/button";
+import { isDevMockAuthEnabled } from "@/lib/auth/dev-mock";
 
 export const instant = false;
 
@@ -72,6 +74,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </Button>
             </form>
           </div>
+
+          {isDevMockAuthEnabled() && (
+            <div className="pt-2 text-center border-t border-[#ebebeb] dark:border-white/[0.08]">
+              <Link
+                href="/app"
+                className="inline-flex items-center justify-center text-xs font-medium text-[#0070e0] hover:underline"
+              >
+                Mock Development Mode Active — Return to Workspace (/app) &rarr;
+              </Link>
+            </div>
+          )}
 
           <div className="pt-2 text-center border-t border-[#ebebeb] dark:border-white/[0.08]">
             <p className="text-xs text-[#6b6b6b] dark:text-[#8f8f8a]">

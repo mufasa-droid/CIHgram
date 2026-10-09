@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { isDevMockAuthEnabled } from "@/lib/auth/dev-mock";
 import {
   sendMessagePayloadSchema,
   getInboxInputSchema,
@@ -59,6 +60,13 @@ export async function sendMessageAction(
       return {
         success: false,
         error: "You cannot send an anonymous message to yourself.",
+      };
+    }
+
+    if (isDevMockAuthEnabled()) {
+      return {
+        success: true,
+        messageId: "00000000-0000-4000-d000-000000000001",
       };
     }
 
@@ -167,6 +175,15 @@ export async function getInboxMessagesAction(
       };
     }
 
+    if (isDevMockAuthEnabled()) {
+      return {
+        success: true,
+        messages: [],
+        hasMore: false,
+        nextCursor: null,
+      };
+    }
+
     const supabase = await createClient();
     const { data, error } = await supabase.rpc("get_recipient_inbox", {
       p_cursor: parsed.data.cursor || null,
@@ -262,6 +279,13 @@ export async function markMessageReadAction(
       };
     }
 
+    if (isDevMockAuthEnabled()) {
+      return {
+        success: true,
+        updated: true,
+      };
+    }
+
     const supabase = await createClient();
     const { data, error } = await supabase.rpc("mark_message_read", {
       p_message_id: parsed.data,
@@ -313,6 +337,13 @@ export async function setMessageStarredAction(
       return {
         success: false,
         error: "You must be signed in to perform this action.",
+      };
+    }
+
+    if (isDevMockAuthEnabled()) {
+      return {
+        success: true,
+        isStarred: parsed.data.isStarred,
       };
     }
 
@@ -377,6 +408,13 @@ export async function deleteMessageAction(
       };
     }
 
+    if (isDevMockAuthEnabled()) {
+      return {
+        success: true,
+        deleted: true,
+      };
+    }
+
     const supabase = await createClient();
     const { data, error } = await supabase.rpc("delete_message_for_recipient", {
       p_message_id: parsed.data,
@@ -417,6 +455,13 @@ export async function getInboxUnreadCountAction(): Promise<GetUnreadCountResult>
         success: false,
         unreadCount: 0,
         error: "Unauthenticated",
+      };
+    }
+
+    if (isDevMockAuthEnabled()) {
+      return {
+        success: true,
+        unreadCount: 0,
       };
     }
 
