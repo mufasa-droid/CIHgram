@@ -45,8 +45,14 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protect /app paths from unauthenticated access (bypassed in development mock mode)
-  if (!isDevMockAuthEnabled() && request.nextUrl.pathname.startsWith("/app") && !user) {
+  // Protect authenticated paths from unauthenticated access (bypassed in development mock mode)
+  const isProtectedPath =
+    request.nextUrl.pathname.startsWith("/app") ||
+    request.nextUrl.pathname.startsWith("/inbox") ||
+    request.nextUrl.pathname.startsWith("/settings") ||
+    request.nextUrl.pathname.startsWith("/moderation");
+
+  if (!isDevMockAuthEnabled() && isProtectedPath && !user) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);

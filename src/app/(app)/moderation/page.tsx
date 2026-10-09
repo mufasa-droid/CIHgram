@@ -1,19 +1,19 @@
 import { redirect } from "next/navigation";
 import { getUserAdmissionStatus } from "@/lib/auth/onboarding";
-import { getDirectoryMembers } from "@/lib/directory/service";
 import { getInboxUnreadCountAction } from "@/lib/messaging/actions";
-import { MemberDirectory } from "@/components/directory/member-directory";
+import { getReportsAction } from "@/lib/moderation/actions";
 import { WorkspaceHeader } from "@/components/shared/workspace-header";
 import { Container } from "@/components/ui/container";
+import { ModerationDashboard } from "@/components/moderation";
 
 export const instant = false;
 
 export const metadata = {
-  title: "People — CIH Messenger",
-  description: "Discover organization members to send anonymous messages.",
+  title: "Moderation — CIH Messenger",
+  description: "Review reports, audit moderation actions, and manage organization safety.",
 };
 
-export default async function AppPage() {
+export default async function ModerationPage() {
   const status = await getUserAdmissionStatus();
 
   if (status.state === "unauthenticated") {
@@ -28,12 +28,21 @@ export default async function AppPage() {
     redirect("/onboarding");
   }
 
-  // Load initial directory members for the caller's organization
-  const { members } = await getDirectoryMembers();
+  // Authorize strictly for admins and moderators
+  const isModeratorOrAdmin =
+    status.organization.role === "admin" || status.organization.role === "moderator";
 
-  // Load unread count for inbox badge
+  if (!isModeratorOrAdmin) {
+    redirect("/app");
+  }
+
+  // Fetch unread count for header badge
   const unreadRes = await getInboxUnreadCountAction();
   const unreadCount = unreadRes.success ? unreadRes.unreadCount : 0;
+
+  // Fetch initial queue of reports
+  const reportsRes = await getReportsAction();
+  const initialReports = reportsRes.success ? reportsRes.reports : [];
 
   return (
     <div className="py-8 sm:py-12">
@@ -42,17 +51,12 @@ export default async function AppPage() {
           organizationName={status.organization.name}
           displayName={status.profile.displayName}
           username={status.profile.username}
-          currentTab="people"
+          currentTab="moderation"
           unreadCount={unreadCount}
-          isModerator={status.organization.role === "admin" || status.organization.role === "moderator"}
+          isModerator={true}
         />
 
-        {/* Member Directory Discovery Component */}
-        <MemberDirectory
-          initialMembers={members}
-          organizationName={status.organization.name}
-          currentUsername={status.profile.username}
-        />
+        <ModerationDashboard initialReports={initialReports} />
       </Container>
     </div>
   );

@@ -49,6 +49,7 @@ export default async function InboxPage() {
           username={status.profile.username}
           currentTab="inbox"
           unreadCount={unreadCount}
+          isModerator={status.organization.role === "admin" || status.organization.role === "moderator"}
         />
 
         {/* Recipient Inbox Component with Client-Side Decryption */}

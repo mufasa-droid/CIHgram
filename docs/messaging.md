@@ -98,7 +98,7 @@ Mutation is handled atomically by `send_anonymous_message`:
 1. **Authentication Guard**: Verifies `auth.uid()` is present.
 2. **Public Identifier Resolution**: Resolves `p_recipient_id` (the client-provided `public_id`) to the recipient's internal `auth.users.id` / `profiles.id`. If no matching profile exists, rejects with `RECIPIENT_NOT_FOUND`.
 3. **Self-Messaging Prohibition**: Fails if `sender_id = resolved_recipient_user_id`.
-4. **Organization Scoping**: Validates that both sender and resolved recipient share an active membership in the same organization.
+4. **Organization Scoping & Active Membership**: Validates that both sender and resolved recipient share an active membership in the same organization (`om.status = 'active'`). Suspended accounts cannot send or receive messages.
 5. **Key Verification**: Verifies that `key_id` belongs to the resolved recipient and is currently active (`is_active = true`).
 6. **Deterministic Dual-Party Advisory Locking & Concurrency Protection**:
    - Acquires transaction-scoped advisory locks on both sender and recipient in deterministic order: `min(sender_id, recipient_id)` then `max(sender_id, recipient_id)`.
@@ -129,8 +129,9 @@ Mutation is handled atomically by `send_anonymous_message`:
 
 ---
 
-## 8. Deferred Work
+## 8. Safety & Moderation Integration
 
 - **User Blocking**: Fully implemented in Prompt 010B (Migration 9).
 - **Abuse Reporting & Evidence Disclosure**: Fully implemented in Prompt 010C (Migration 10).
-- **Moderation Actions & Sanctions**: Scheduled for Prompt 010D.
+- **Moderation Actions & Account Suspensions**: Fully implemented in Prompt 010D (Migration 11; see [docs/moderation.md](file:///c:/Users/HomePC/Documents/projects/cih%20message%20platform/docs/moderation.md)).
+

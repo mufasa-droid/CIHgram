@@ -55,6 +55,7 @@ export default async function SettingsPage() {
           username={settingsData.profile.username}
           currentTab="settings"
           unreadCount={unreadCount}
+          isModerator={status.organization.role === "admin" || status.organization.role === "moderator"}
         />
 
         <div className="space-y-8">

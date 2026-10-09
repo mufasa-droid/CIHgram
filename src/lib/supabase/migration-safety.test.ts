@@ -20,6 +20,7 @@ describe("Prompt 007B: Migration & Admission Safety Invariant Checks", () => {
     "20261008000008_public_profile_identifiers.sql",
     "20261008000009_blocks_schema.sql",
     "20261008000010_reports_schema.sql",
+    "20261008000011_moderation_actions_schema.sql",
   ];
 
   const completeSetupSql = fs.readFileSync(completeSetupPath, "utf-8");
@@ -232,6 +233,54 @@ describe("Prompt 007B: Migration & Admission Safety Invariant Checks", () => {
       expect(migration10Sql).toContain("MESSAGE_NOT_FOUND: Message not found or caller is not authorized recipient");
       expect(migration10Sql).toContain("REVOKE ALL ON FUNCTION public.create_message_report FROM PUBLIC, anon;");
       expect(migration10Sql).toContain("GRANT EXECUTE ON FUNCTION public.create_message_report TO authenticated;");
+    });
+  });
+
+  describe("8. Migration 11: Moderation Actions & Moderator Authorization Invariants", () => {
+    const migration11Path = path.join(migrationsDir, "20261008000011_moderation_actions_schema.sql");
+    const migration11Sql = fs.readFileSync(migration11Path, "utf-8");
+
+    it("verifies public.is_org_moderator_or_admin checks active admin or moderator role", () => {
+      expect(migration11Sql).toContain("CREATE OR REPLACE FUNCTION public.is_org_moderator_or_admin");
+      expect(migration11Sql).toContain("role IN ('admin', 'moderator')");
+      expect(migration11Sql).toContain("status = 'active'");
+      expect(migration11Sql).toContain("SET search_path = public, pg_temp");
+      expect(migration11Sql).toContain("REVOKE ALL ON FUNCTION public.is_org_moderator_or_admin(UUID, UUID) FROM PUBLIC, anon;");
+      expect(migration11Sql).toContain("GRANT EXECUTE ON FUNCTION public.is_org_moderator_or_admin(UUID, UUID) TO authenticated;");
+    });
+
+    it("verifies public.moderation_actions table has correct constraints, indexes, and RLS", () => {
+      expect(migration11Sql).toContain("CREATE TABLE IF NOT EXISTS public.moderation_actions");
+      expect(migration11Sql).toContain("action_type IN ('resolve_report', 'dismiss_report', 'investigate_report', 'warn_user', 'suspend_user', 'reactivate_user')");
+      expect(migration11Sql).toContain("length(trim(reason)) >= 3 AND length(reason) <= 1000");
+      expect(migration11Sql).toContain("CREATE INDEX IF NOT EXISTS idx_moderation_actions_org_created");
+      expect(migration11Sql).toContain("CREATE INDEX IF NOT EXISTS idx_moderation_actions_report");
+      expect(migration11Sql).toContain("CREATE INDEX IF NOT EXISTS idx_moderation_actions_moderator");
+      expect(migration11Sql).toContain("CREATE INDEX IF NOT EXISTS idx_moderation_actions_target");
+      expect(migration11Sql).toContain("ALTER TABLE public.moderation_actions ENABLE ROW LEVEL SECURITY;");
+      expect(migration11Sql).toContain("REVOKE ALL ON public.moderation_actions FROM PUBLIC, anon, authenticated;");
+      expect(migration11Sql).toContain("CREATE POLICY moderation_actions_mod_admin_read ON public.moderation_actions");
+      expect(migration11Sql).toContain("CREATE POLICY reports_mod_admin_read ON public.reports");
+    });
+
+    it("verifies get_organization_reports, get_report_details, resolve_report, apply_moderation_action, get_moderation_actions RPCs", () => {
+      expect(migration11Sql).toContain("CREATE OR REPLACE FUNCTION public.get_organization_reports");
+      expect(migration11Sql).toContain("CREATE OR REPLACE FUNCTION public.get_report_details");
+      expect(migration11Sql).toContain("CREATE OR REPLACE FUNCTION public.resolve_report");
+      expect(migration11Sql).toContain("CREATE OR REPLACE FUNCTION public.apply_moderation_action");
+      expect(migration11Sql).toContain("CREATE OR REPLACE FUNCTION public.get_moderation_actions");
+
+      // Verify self-moderation prevention and role hierarchy
+      expect(migration11Sql).toContain("CANNOT_MODERATE_SELF: Moderators cannot apply moderation actions to their own account");
+      expect(migration11Sql).toContain("INSUFFICIENT_PRIVILEGES: Only administrators can take action against organization administrators");
+
+      // Verify execution permissions
+      expect(migration11Sql).toContain("REVOKE ALL ON FUNCTION public.get_organization_reports(TEXT, TEXT, INTEGER, INTEGER) FROM PUBLIC, anon;");
+      expect(migration11Sql).toContain("GRANT EXECUTE ON FUNCTION public.get_organization_reports(TEXT, TEXT, INTEGER, INTEGER) TO authenticated;");
+      expect(migration11Sql).toContain("REVOKE ALL ON FUNCTION public.resolve_report(UUID, TEXT, TEXT) FROM PUBLIC, anon;");
+      expect(migration11Sql).toContain("GRANT EXECUTE ON FUNCTION public.resolve_report(UUID, TEXT, TEXT) TO authenticated;");
+      expect(migration11Sql).toContain("REVOKE ALL ON FUNCTION public.apply_moderation_action(UUID, TEXT, TEXT, UUID) FROM PUBLIC, anon;");
+      expect(migration11Sql).toContain("GRANT EXECUTE ON FUNCTION public.apply_moderation_action(UUID, TEXT, TEXT, UUID) TO authenticated;");
     });
   });
 });

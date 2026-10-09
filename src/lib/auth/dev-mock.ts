@@ -146,4 +146,90 @@ export const DEV_MOCK_REPORTS: Array<{
   disclosedPlaintext: string | null;
 }> = [];
 
+export const DEV_MOCK_MODERATION_REPORTS: Array<{
+  id: string;
+  organizationId: string;
+  category: "harassment" | "threats" | "spam" | "inappropriate_content" | "impersonation" | "other";
+  details: string | null;
+  disclosedPlaintext: string | null;
+  disclosedPlaintextConsent: boolean;
+  status: "pending" | "investigating" | "resolved" | "dismissed";
+  reportedUser: {
+    publicId: string;
+    username: string;
+    displayName: string;
+    status: string;
+  };
+  messageId: string;
+  createdAt: string;
+  updatedAt: string;
+  actions: Array<{
+    id: string;
+    actionType: string;
+    reason: string;
+    createdAt: string;
+    moderatorUsername: string;
+    moderatorDisplayName: string;
+  }>;
+}> = [
+  {
+    id: "00000000-0000-4000-e000-000000000001",
+    organizationId: DEV_MOCK_ORG_ID,
+    category: "harassment",
+    details: "Repeated derogatory anonymous messages received over the past week.",
+    disclosedPlaintext: "This is a mock abusive message disclosed by the recipient for moderation review.",
+    disclosedPlaintextConsent: true,
+    status: "pending",
+    reportedUser: {
+      publicId: "00000000-0000-4000-d000-000000000002",
+      username: "alan",
+      displayName: "Alan Turing",
+      status: "active",
+    },
+    messageId: "00000000-0000-4000-m000-000000000001",
+    createdAt: "2026-10-08T12:00:00.000Z",
+    updatedAt: "2026-10-08T12:00:00.000Z",
+    actions: [],
+  },
+  {
+    id: "00000000-0000-4000-e000-000000000002",
+    organizationId: DEV_MOCK_ORG_ID,
+    category: "spam",
+    details: "Unsolicited promotional content sent via anonymous channel.",
+    disclosedPlaintext: null,
+    disclosedPlaintextConsent: false,
+    status: "pending",
+    reportedUser: {
+      publicId: "00000000-0000-4000-d000-000000000003",
+      username: "grace",
+      displayName: "Grace Hopper",
+      status: "active",
+    },
+    messageId: "00000000-0000-4000-m000-000000000002",
+    createdAt: "2026-10-08T14:30:00.000Z",
+    updatedAt: "2026-10-08T14:30:00.000Z",
+    actions: [],
+  },
+];
+
+export const DEV_MOCK_MODERATION_ACTIONS: Array<{
+  id: string;
+  actionType: "resolve_report" | "dismiss_report" | "investigate_report" | "warn_user" | "suspend_user" | "reactivate_user";
+  reason: string;
+  createdAt: string;
+  reportId: string | null;
+  targetUser: {
+    publicId: string | null;
+    username: string | null;
+    displayName: string | null;
+  };
+  moderator: {
+    publicId: string;
+    username: string;
+    displayName: string;
+  };
+  metadata: Record<string, unknown>;
+}> = [];
+
+
 

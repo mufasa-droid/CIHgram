@@ -53,5 +53,10 @@ test.describe("Application Foundation Smoke Tests", () => {
     await page.goto("/settings");
     await expect(page).toHaveURL(/\/login/);
   });
+
+  test("redirects unauthenticated user accessing /moderation to /login", async ({ page }) => {
+    await page.goto("/moderation");
+    await expect(page).toHaveURL(/\/login/);
+  });
 });
 

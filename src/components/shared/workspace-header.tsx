@@ -3,15 +3,16 @@
 import * as React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Users, Inbox, Settings } from "lucide-react";
+import { Users, Inbox, Settings, Shield } from "lucide-react";
 import { clearLocalIdentity } from "@/lib/crypto/keystore";
 
 export interface WorkspaceHeaderProps {
   organizationName: string;
   displayName: string;
   username: string;
-  currentTab: "people" | "inbox" | "settings";
+  currentTab: "people" | "inbox" | "settings" | "moderation";
   unreadCount?: number;
+  isModerator?: boolean;
 }
 
 export function WorkspaceHeader({
@@ -20,6 +21,7 @@ export function WorkspaceHeader({
   username,
   currentTab,
   unreadCount = 0,
+  isModerator = false,
 }: WorkspaceHeaderProps) {
   const [isSigningOut, setIsSigningOut] = React.useState(false);
 
@@ -122,6 +124,21 @@ export function WorkspaceHeader({
           <Settings className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Settings</span>
         </Link>
+
+        {isModerator && (
+          <Link
+            href="/moderation"
+            className={`inline-flex items-center gap-2 h-8 px-3 rounded-[8px] text-[13px] font-medium transition-colors ${
+              currentTab === "moderation"
+                ? "bg-[#f4f4f5] text-[#111111] dark:bg-[#1a1a1d] dark:text-[#f4f4f2]"
+                : "text-[#6b6b6b] hover:text-[#111111] hover:bg-[#fafafa] dark:text-[#8f8f8a] dark:hover:text-[#f4f4f2] dark:hover:bg-[#111113]"
+            }`}
+            aria-current={currentTab === "moderation" ? "page" : undefined}
+          >
+            <Shield className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Moderation</span>
+          </Link>
+        )}
       </nav>
     </div>
   );

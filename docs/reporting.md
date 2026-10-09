@@ -98,12 +98,13 @@ RETURNS JSONB
 ### User-Submitted Evidence vs. Cryptographic Proof:
 - **Important Distinction**: In end-to-end encrypted messaging with Libsodium sealed boxes (`crypto_box_seal`), messages are encrypted using an ephemeral sender keypair that is destroyed immediately after encryption. While sealed boxes provide recipient confidentiality, they intentionally do NOT produce an asymmetric digital signature linking the ciphertext to the sender's long-term identity (which would break sender anonymity).
 - **Evidence Semantics**: The disclosed plaintext submitted by the recipient is **user-provided evidence**. It is stored in `public.reports.disclosed_plaintext` to enable organization moderators to read the reported content. However, the system does not claim or describe this as mathematical non-repudiation or cryptographic proof of authorship.
-- **Moderator Access**: Access to `public.reports` is completely restricted. Future moderator interfaces (Prompt 010D) will expose reports exclusively to authorized workspace administrators with full audit logging.
+- **Moderator Access**: Access to `public.reports` is completely restricted. As implemented in Prompt 010D (see [docs/moderation.md](file:///c:/Users/HomePC/Documents/projects/cih%20message%20platform/docs/moderation.md)), reports are reviewed strictly by authorized workspace moderators and administrators (`is_org_moderator_or_admin`) via `/moderation` with append-only audit logging (`public.moderation_actions`). Plaintext is withheld from queue overviews and revealed only in the detail dialog when `disclosed_plaintext_consent = true`.
 
 ---
 
-## 6. Retention & Purge Lifecycle
+## 6. Moderation Lifecycle & Retention
 
-- When a recipient deletes a message from their inbox (`delete_message_for_recipient`), the message undergoes a soft-delete (`deleted_by_recipient = true`) and is excluded from inbox views.
-- If a message has an active report in `public.reports`, the report remains available to moderators for review regardless of whether the recipient subsequently deletes the message from their personal inbox.
-- Automatic purge routines for resolved reports and 30-day safety retention cycles will be governed by the moderation and retention policies specified in Prompt 010D and Prompt 011.
+- **Report Review & Resolution**: Reports enter status `'pending'`, transition to `'investigating'`, and are resolved or dismissed via `resolve_report` or sanction action `apply_moderation_action`.
+- **Soft-Delete Decoupling**: When a recipient deletes a message from their inbox (`delete_message_for_recipient`), the message undergoes a soft-delete (`deleted_by_recipient = true`) and is excluded from personal inbox views. However, if a message has an active report in `public.reports`, the report remains securely available to moderators for review.
+- **Sanction Execution**: Verified abuse can trigger account warnings or suspension (`organization_members.status = 'suspended'`), which immediately revokes all messaging and inbox permissions for the offending sender.
+- **Retention**: Historical moderation actions are permanently logged in `public.moderation_actions` for tamper-evident accountability. Future purge cycles are detailed in [docs/moderation.md](file:///c:/Users/HomePC/Documents/projects/cih%20message%20platform/docs/moderation.md).

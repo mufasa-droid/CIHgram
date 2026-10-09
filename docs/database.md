@@ -270,6 +270,18 @@ In PostgreSQL RLS, checking a user's membership in a table policy (e.g., in `pro
 - Enforces recipient authorization (`m.recipient_id = auth.uid()`), organization boundary, reporter sliding-window rate limit (10/hr), and advisory locking.
 - Returns `{ success: true, report_id }` with zero sender identity exposure. Direct table access is completely revoked from public, anon, and authenticated roles.
 
+### 4.10 Auditable Moderation Actions & Governance (`20261008000011_moderation_actions_schema.sql`)
+- `public.is_org_moderator_or_admin(lookup_org_id, lookup_user_id)`: Helper function checking `role IN ('admin', 'moderator')` and `status = 'active'` in `public.organization_members`.
+- `public.moderation_actions`: Created table with columns `(id, organization_id, report_id, moderator_id, target_user_id, action_type, reason, metadata, created_at)`.
+- `action_type` restricted by check constraint to: `'resolve_report', 'dismiss_report', 'investigate_report', 'warn_user', 'suspend_user', 'reactivate_user'`.
+- `reason` enforced to non-blank text between 3 and 1000 characters.
+- RLS enabled on `moderation_actions` and `reports` for `SELECT` using `is_org_moderator_or_admin`. Direct write access revoked from `PUBLIC`, `anon`, and `authenticated`.
+- `get_organization_reports(p_status, p_category, p_limit, p_offset)`: Security-definer procedure returning paginated report queue. Omits raw plaintext in queue listings and masks internal UUIDs using `profiles.public_id`.
+- `get_report_details(p_report_id)`: Security-definer procedure returning full report details, voluntary decrypted plaintext (only when `disclosed_plaintext_consent = true`), target user public attributes, and audit history.
+- `resolve_report(p_report_id, p_new_status, p_reason)`: Security-definer procedure acquiring advisory lock `resolve_report:report_id`, validating status transition (`investigating`, `resolved`, `dismissed`), updating report, and recording audit entry.
+- `apply_moderation_action(p_target_public_id, p_action_type, p_reason, p_report_id)`: Security-definer procedure enforcing role hierarchy (cannot moderate self, moderators cannot sanction admins), applying status transitions on `public.organization_members` (`status = 'suspended' | 'active'`), auto-resolving associated reports, and recording audit entry.
+- `get_moderation_actions(p_limit, p_offset)`: Security-definer procedure returning chronological organization audit trail projecting public identifiers only.
+
 ---
 
 ## 5. Migration Workflow

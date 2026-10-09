@@ -20,12 +20,13 @@ The interface adheres strictly to **71UI design principles** (quiet editorial ae
 | `provider` | Supabase Auth | **View Only** | Read-only string (`Google OAuth`) | Authentication mechanism |
 | `user_id` | `auth.users` | **View Only** | Read-only UUID | Immutable platform identifier |
 | `organization_name` | `public.organizations` | **View Only** | Read-only string | Tenant workspace |
-| `role` | `public.organization_members` | **View Only** | Read-only (`member` / `admin`) | Membership authorization role |
-| `status` | `public.organization_members` | **View Only** | Read-only (`active`) | Account state within organization |
+| `role` | `public.organization_members` | **View Only** | Read-only (`member` / `moderator` / `admin`) | Membership authorization role |
+| `status` | `public.organization_members` | **View Only** | Read-only (`active` / `suspended`) | Account state within organization |
 | `joined_at` | `public.organization_members` | **View Only** | Read-only ISO timestamp | Membership admission date |
 
-### 2.1 Protected Fields Immunity
+### 2.1 Protected Fields & Navigation Boundaries
 - **Organization Membership & Role**: Roles (`role`) and statuses (`status`) reside on `public.organization_members`. They are completely excluded from the update DTO and protected by RLS (`org_members_update_admin` requires `is_org_admin()`).
+- **Workspace Navigation**: Members with `role IN ('admin', 'moderator')` receive a dedicated "Moderation" tab link in `WorkspaceHeader` leading to `/moderation` (see [docs/moderation.md](file:///c:/Users/HomePC/Documents/projects/cih%20message%20platform/docs/moderation.md)). Standard members and suspended accounts do not see this link.
 - **Authentication Identifiers**: `auth.users` records (email, passwords, OAuth tokens) are never mutable via application profile actions. Password changes are not applicable for Google OAuth accounts.
 - **Account Ownership & Cross-User Tampering**: Target user ID is derived strictly from the verified server session (`status.user.id`). Client-supplied IDs are stripped and ignored, and database RLS policy `profiles_update_own` rejects any update where `id != auth.uid()`.
 

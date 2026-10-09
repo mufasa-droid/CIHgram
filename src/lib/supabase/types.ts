@@ -262,32 +262,53 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
+          report_id: string | null;
           moderator_id: string;
-          target_user_id: string;
-          action_type: "warn" | "restrict" | "suspend" | "ban";
+          target_user_id: string | null;
+          action_type:
+            | "resolve_report"
+            | "dismiss_report"
+            | "investigate_report"
+            | "warn_user"
+            | "suspend_user"
+            | "reactivate_user";
           reason: string;
+          metadata: Json;
           created_at: string;
-          expires_at: string | null;
         };
         Insert: {
           id?: string;
           organization_id: string;
+          report_id?: string | null;
           moderator_id: string;
-          target_user_id: string;
-          action_type: "warn" | "restrict" | "suspend" | "ban";
+          target_user_id?: string | null;
+          action_type:
+            | "resolve_report"
+            | "dismiss_report"
+            | "investigate_report"
+            | "warn_user"
+            | "suspend_user"
+            | "reactivate_user";
           reason: string;
+          metadata?: Json;
           created_at?: string;
-          expires_at?: string | null;
         };
         Update: {
           id?: string;
           organization_id?: string;
+          report_id?: string | null;
           moderator_id?: string;
-          target_user_id?: string;
-          action_type?: "warn" | "restrict" | "suspend" | "ban";
+          target_user_id?: string | null;
+          action_type?:
+            | "resolve_report"
+            | "dismiss_report"
+            | "investigate_report"
+            | "warn_user"
+            | "suspend_user"
+            | "reactivate_user";
           reason?: string;
+          metadata?: Json;
           created_at?: string;
-          expires_at?: string | null;
         };
         Relationships: [];
       };
@@ -458,6 +479,80 @@ export type Database = {
           p_disclosed_plaintext?: string | null;
         };
         Returns: Json;
+      };
+      is_org_moderator_or_admin: {
+        Args: {
+          lookup_org_id: string;
+          lookup_user_id: string;
+        };
+        Returns: boolean;
+      };
+      get_organization_reports: {
+        Args: {
+          p_status?: string | null;
+          p_category?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: {
+          id: string;
+          organization_id: string;
+          category: string;
+          details: string | null;
+          status: string;
+          has_disclosed_plaintext: boolean;
+          disclosed_plaintext_consent: boolean;
+          reported_user_public_id: string;
+          reported_username: string;
+          reported_display_name: string;
+          reported_user_status: string;
+          message_id: string;
+          created_at: string;
+          updated_at: string;
+        }[];
+      };
+      get_report_details: {
+        Args: {
+          p_report_id: string;
+        };
+        Returns: Json;
+      };
+      resolve_report: {
+        Args: {
+          p_report_id: string;
+          p_new_status: string;
+          p_reason: string;
+        };
+        Returns: Json;
+      };
+      apply_moderation_action: {
+        Args: {
+          p_target_public_id: string;
+          p_action_type: string;
+          p_reason: string;
+          p_report_id?: string | null;
+        };
+        Returns: Json;
+      };
+      get_moderation_actions: {
+        Args: {
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: {
+          id: string;
+          action_type: string;
+          reason: string;
+          created_at: string;
+          report_id: string | null;
+          target_public_id: string | null;
+          target_username: string | null;
+          target_display_name: string | null;
+          moderator_public_id: string;
+          moderator_username: string;
+          moderator_display_name: string;
+          metadata: Json;
+        }[];
       };
     };
 
