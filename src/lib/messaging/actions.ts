@@ -2,7 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { isDevMockAuthEnabled } from "@/lib/auth/dev-mock";
+import {
+  isDevMockAuthEnabled,
+  DEV_MOCK_USER_ID,
+  DEV_MOCK_PUBLIC_ID,
+} from "@/lib/auth/dev-mock";
 import {
   sendMessagePayloadSchema,
   getInboxInputSchema,
@@ -64,6 +68,15 @@ export async function sendMessageAction(
     }
 
     if (isDevMockAuthEnabled()) {
+      if (
+        payload.recipientId === DEV_MOCK_USER_ID ||
+        payload.recipientId === DEV_MOCK_PUBLIC_ID
+      ) {
+        return {
+          success: false,
+          error: "You cannot send an anonymous message to yourself.",
+        };
+      }
       return {
         success: true,
         messageId: "00000000-0000-4000-d000-000000000001",
@@ -87,6 +100,23 @@ export async function sendMessageAction(
         keyId: payload.keyId,
         reason: errMsg,
       });
+
+      if (
+        errMsg.includes("INVALID_RECIPIENT") ||
+        errMsg.includes("CANNOT_SEND_TO_SELF")
+      ) {
+        return {
+          success: false,
+          error: "You cannot send an anonymous message to yourself.",
+        };
+      }
+
+      if (errMsg.includes("RECIPIENT_NOT_FOUND")) {
+        return {
+          success: false,
+          error: "The recipient could not be found or is inactive.",
+        };
+      }
 
       if (errMsg.includes("RATE_LIMITED")) {
         return {

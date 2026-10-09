@@ -16,6 +16,7 @@ export function isDevMockAuthEnabled(): boolean {
 }
 
 export const DEV_MOCK_USER_ID = "00000000-0000-4000-a000-000000000001";
+export const DEV_MOCK_PUBLIC_ID = "00000000-0000-4000-d000-000000000001";
 export const DEV_MOCK_ORG_ID = "00000000-0000-4000-b000-000000000001";
 
 export const DEV_MOCK_USER: User = {
@@ -66,25 +67,25 @@ export const DEV_MOCK_ADMISSION_STATUS: UserAdmissionStatus = {
 
 export const DEV_MOCK_DIRECTORY_MEMBERS: PublicMember[] = [
   {
-    id: "00000000-0000-4000-a000-000000000002",
+    id: "00000000-0000-4000-d000-000000000002",
     username: "alan",
     displayName: "Alan Turing",
     avatarUrl: null,
   },
   {
-    id: "00000000-0000-4000-a000-000000000003",
+    id: "00000000-0000-4000-d000-000000000003",
     username: "grace",
     displayName: "Grace Hopper",
     avatarUrl: null,
   },
   {
-    id: "00000000-0000-4000-a000-000000000004",
+    id: "00000000-0000-4000-d000-000000000004",
     username: "charles",
     displayName: "Charles Babbage",
     avatarUrl: null,
   },
   {
-    id: "00000000-0000-4000-a000-000000000005",
+    id: "00000000-0000-4000-d000-000000000005",
     username: "katherine",
     displayName: "Katherine Johnson",
     avatarUrl: null,

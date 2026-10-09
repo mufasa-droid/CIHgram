@@ -37,7 +37,7 @@ The Anonymous Messaging Platform is engineered for **one-way, recipient-only ano
 ### Encrypted Message Envelope Structure:
 ```typescript
 export interface SendMessageInput {
-  recipientId: string;                    // Target user UUID
+  recipientId: string;                    // Target user public_id (profiles.public_id UUID)
   keyId: string;                          // Recipient's public_keys UUID
   ciphertext: string;                     // Base64 sealed box payload (48B to 32KB)
   protocolVersion: 1;                     // Protocol version
@@ -45,11 +45,14 @@ export interface SendMessageInput {
 }
 ```
 
+> **Security Note on Recipient Addressing (FINDING-009A-1)**:
+> `recipientId` is the recipient's opaque, stable `profiles.public_id`. The client never sees or supplies the recipient's internal `auth.users.id`. The stored procedure `send_anonymous_message` securely resolves `public_id` to internal user ID within its `SECURITY DEFINER` execution context.
+
 ---
 
 ## 3. Database Schema (`public.messages`)
 
-Defined in [20261008000004_messages_schema.sql](file:///c:/Users/HomePC/Documents/projects/cih%20message%20platform/supabase/migrations/20261008000004_messages_schema.sql):
+Defined in [20261008000004_messages_schema.sql](file:///c:/Users/HomePC/Documents/projects/cih%20message%20platform/supabase/migrations/20261008000004_messages_schema.sql) and hardened in [20261008000008_public_profile_identifiers.sql](file:///c:/Users/HomePC/Documents/projects/cih%20message%20platform/supabase/migrations/20261008000008_public_profile_identifiers.sql):
 
 ```sql
 CREATE TABLE public.messages (
@@ -75,7 +78,7 @@ CREATE TABLE public.messages (
 
 ### Separation of Concerns:
 - `sender_id`: Retained internally by the platform for rate limiting, abuse investigation, and blocking enforcement.
-- `recipient_id`: Target of the message.
+- `recipient_id`: Target of the message (internal FK to `profiles.id`).
 - `ciphertext`: Opaque Base64 encrypted payload.
 - **Zero Plaintext**: No plaintext column, no subject, no search preview, and no snippet exists in the database.
 
@@ -84,7 +87,7 @@ CREATE TABLE public.messages (
 ## 4. Row Level Security & Anonymity Enforcement
 
 1. **Direct `SELECT` Revocation**: Direct `SELECT` permission on the base `messages` table is **revoked** from `authenticated` and `anon` roles. This prevents malicious clients from querying `sender_id` directly via PostgREST.
-2. **Recipient Reads**: In Prompt 008, recipients will query strictly through the PostgreSQL Security Barrier View (`recipient_inbox_messages`), which projects only safe columns (`id, recipient_id, ciphertext, key_id, created_at, is_read, is_starred`) and completely omits `sender_id`.
+2. **Recipient Reads**: In Prompt 008, recipients query strictly through the PostgreSQL Security Barrier View (`recipient_inbox_messages`), which projects only safe columns (`id, recipient_id, ciphertext, key_id, created_at, is_read, is_starred`) and completely omits `sender_id`.
 3. **Session-Enforced Inserts**: The insert policy verifies `sender_id = auth.uid()`.
 
 ---
@@ -93,14 +96,15 @@ CREATE TABLE public.messages (
 
 Mutation is handled atomically by `send_anonymous_message`:
 1. **Authentication Guard**: Verifies `auth.uid()` is present.
-2. **Self-Messaging Prohibition**: Fails if `sender_id = recipient_id`.
-3. **Organization Scoping**: Validates that both sender and recipient share an active membership in the same organization.
-4. **Key Verification**: Verifies that `key_id` belongs to `recipient_id` and is currently active (`is_active = true`).
-5. **Sliding-Window Rate Limiting**:
+2. **Public Identifier Resolution**: Resolves `p_recipient_id` (the client-provided `public_id`) to the recipient's internal `auth.users.id` / `profiles.id`. If no matching profile exists, rejects with `RECIPIENT_NOT_FOUND`.
+3. **Self-Messaging Prohibition**: Fails if `sender_id = resolved_recipient_user_id`.
+4. **Organization Scoping**: Validates that both sender and resolved recipient share an active membership in the same organization.
+5. **Key Verification**: Verifies that `key_id` belongs to the resolved recipient and is currently active (`is_active = true`).
+6. **Sliding-Window Rate Limiting**:
    - Max **5 messages per 60 seconds** per sender.
    - Max **50 messages per 24 hours** per sender.
-   - Enforced at the database level to ensure consistency across distributed server instances.
-6. **Atomic Persistence**: Inserts into `public.messages` and returns minimal confirmation (`{ success: true, message_id }`).
+   - Enforced at the database level with transaction-scoped advisory locking (`pg_advisory_xact_lock`) to serialize concurrent requests per sender.
+7. **Atomic Persistence**: Inserts into `public.messages` using internal user IDs and returns minimal confirmation (`{ success: true, message_id }`).
 
 ---
 

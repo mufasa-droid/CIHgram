@@ -17,6 +17,7 @@ describe("Prompt 007B: Migration & Admission Safety Invariant Checks", () => {
     "20261008000005_strict_organization_admission.sql",
     "20261008000006_recipient_inbox_schema.sql",
     "20261008000007_harden_inbox_organization_boundary.sql",
+    "20261008000008_public_profile_identifiers.sql",
   ];
 
   const completeSetupSql = fs.readFileSync(completeSetupPath, "utf-8");
@@ -102,4 +103,42 @@ describe("Prompt 007B: Migration & Admission Safety Invariant Checks", () => {
       expect(messagesSql).toContain("ciphertext ~ '^[A-Za-z0-9+/=]+$'");
     });
   });
+
+  describe("4. Public Profile Identifiers Migration Safety (Prompt 009B)", () => {
+    const migration8Sql = fs.readFileSync(
+      path.join(migrationsDir, "20261008000008_public_profile_identifiers.sql"),
+      "utf-8"
+    );
+
+    it("adds public_id column with gen_random_uuid default and unique index", () => {
+      expect(migration8Sql).toContain("ADD COLUMN IF NOT EXISTS public_id UUID");
+      expect(migration8Sql).toContain("DEFAULT gen_random_uuid()");
+      expect(migration8Sql).toContain("CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_public_id");
+    });
+
+    it("projects p.public_id AS id in search_organization_members", () => {
+      expect(migration8Sql).toContain("p.public_id AS id");
+      expect(migration8Sql).toContain("CREATE OR REPLACE FUNCTION public.search_organization_members");
+    });
+
+    it("projects p.public_id AS id in get_organization_member_by_username", () => {
+      expect(migration8Sql).toContain("CREATE OR REPLACE FUNCTION public.get_organization_member_by_username");
+      expect(migration8Sql).toContain("p.public_id AS id");
+    });
+
+    it("resolves recipient by public_id in get_active_public_key and shields internal auth UUID", () => {
+      expect(migration8Sql).toContain("CREATE OR REPLACE FUNCTION public.get_active_public_key");
+      expect(migration8Sql).toContain("p.public_id = p_target_user_id");
+      expect(migration8Sql).toContain("v_target_public_id AS user_id");
+    });
+
+    it("resolves recipient by public_id in send_anonymous_message and enforces active org boundary", () => {
+      expect(migration8Sql).toContain("CREATE OR REPLACE FUNCTION public.send_anonymous_message");
+      expect(migration8Sql).toContain("p.public_id = p_recipient_id");
+      expect(migration8Sql).toContain("v_sender_id = v_recipient_user_id");
+      expect(migration8Sql).toContain("REVOKE ALL ON FUNCTION public.send_anonymous_message(UUID, UUID, TEXT, INTEGER) FROM PUBLIC, anon;");
+      expect(migration8Sql).toContain("GRANT EXECUTE ON FUNCTION public.send_anonymous_message(UUID, UUID, TEXT, INTEGER) TO authenticated;");
+    });
+  });
 });
+

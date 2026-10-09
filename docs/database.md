@@ -32,7 +32,8 @@ Application-level user identity associated 1:1 with an authenticated `auth.users
 
 | Column | Type | Nullable | Default | Description |
 | :--- | :--- | :---: | :--- | :--- |
-| `id` | `UUID` | No | — | Primary Key, FK `auth.users(id)` ON DELETE CASCADE |
+| `id` | `UUID` | No | — | Primary Key, FK `auth.users(id)` ON DELETE CASCADE (internal only) |
+| `public_id` | `UUID` | No | `gen_random_uuid()` | Opaque, stable public profile identifier (distinct from auth.users.id) |
 | `username` | `CITEXT` | No | — | Unique case-insensitive handle (3–30 chars) |
 | `display_name` | `TEXT` | No | — | Full name or nickname (1–50 chars) |
 | `avatar_url` | `TEXT` | Yes | `NULL` | Public HTTP/S URL to avatar storage |
@@ -46,8 +47,9 @@ Application-level user identity associated 1:1 with an authenticated `auth.users
 - `profiles_bio_length_check`: Max 250 characters.
 - `profiles_avatar_url_check`: Valid HTTP/HTTPS format.
 - `idx_profiles_username`: Unique index on `username`.
+- `idx_profiles_public_id`: Unique index on `public_id` (enforces platform-wide public identifier uniqueness).
 - `idx_profiles_created_at`: Index on `created_at`.
-- **Privacy Guarantee**: Does NOT contain email addresses, OAuth tokens, passwords, or authentication provider secrets.
+- **Privacy Guarantee**: `auth.users.id` is strictly internal. Public directory search and client messaging flows use `public_id`. Does NOT contain email addresses, OAuth tokens, passwords, or authentication provider secrets.
 
 ### 2.3 `public.organization_members`
 
@@ -195,6 +197,13 @@ In PostgreSQL RLS, checking a user's membership in a table policy (e.g., in `pro
 - `get_recipient_inbox`: Re-defined to query directly through `recipient_inbox_messages` and verify caller has at least one active organization membership.
 - `mark_message_read`, `set_message_starred`, `delete_message_for_recipient`: Re-defined to enforce active organization membership.
 - `get_inbox_unread_count`: Re-defined to query through `recipient_inbox_messages`.
+
+### 4.7 Public Profile Identifier Privacy Remediation (`20261008000008_public_profile_identifiers.sql`)
+- `public.profiles.public_id`: Added non-null UUID column with `DEFAULT gen_random_uuid()` and unique index `idx_profiles_public_id`.
+- `search_organization_members`: Re-defined to project `p.public_id AS id`, completely removing `auth.users.id` from directory search outputs.
+- `get_organization_member_by_username`: Re-defined to project `p.public_id AS id`.
+- `get_active_public_key`: Re-defined to resolve recipient internal ID via `public_id` and project `v_target_public_id AS user_id` in output rows, preventing disclosure of target `auth.users.id`.
+- `send_anonymous_message`: Re-defined to accept recipient `public_id`, internally resolve to `v_recipient_user_id`, and verify active organization boundary and key validity before inserting into `public.messages`.
 
 ---
 
