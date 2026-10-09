@@ -3,6 +3,7 @@ import type { UserAdmissionStatus } from "./onboarding";
 import type { PublicMember } from "@/lib/directory/types";
 import type { ProfileSettingsData } from "@/lib/profile/types";
 import type { PublicKeyRecord, UserKeyStatus } from "@/lib/crypto/types";
+import type { BlockedUser } from "@/lib/blocking/types";
 
 /**
  * Safe development-only mock auth toggle.
@@ -134,3 +135,6 @@ export const DEV_MOCK_KEY_STATUS: UserKeyStatus = {
   createdAt: "2026-01-01T00:00:00.000Z",
   keyCount: 1,
 };
+
+export const DEV_MOCK_BLOCKED_USERS: BlockedUser[] = [];
+

@@ -11,6 +11,7 @@ import {
   RotateCw,
   Inbox as InboxIcon,
   Users,
+  ShieldOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import {
   setMessageStarredAction,
   deleteMessageAction,
 } from "@/lib/messaging/actions";
+import { blockMessageSenderAction } from "@/lib/blocking/actions";
 import { restoreIdentity } from "@/lib/crypto/identity";
 import type {
   RecipientInboxMessage,
@@ -65,6 +67,9 @@ export function RecipientInbox({
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(null);
   const [isDeletingId, setIsDeletingId] = React.useState<string | null>(null);
   const [isStarringId, setIsStarringId] = React.useState<string | null>(null);
+  const [blockConfirmId, setBlockConfirmId] = React.useState<string | null>(null);
+  const [isBlockingId, setIsBlockingId] = React.useState<string | null>(null);
+  const [blockNotification, setBlockNotification] = React.useState<string | null>(null);
 
   // Recovery phrase input state
   const [recoveryPhrase, setRecoveryPhrase] = React.useState<string>("");
@@ -220,6 +225,30 @@ export function RecipientInbox({
       setActionError("An unexpected error occurred while deleting the message.");
     } finally {
       setIsDeletingId(null);
+    }
+  };
+
+  // Handle Block Sender Confirmation & Mutation
+  const handleBlockSender = async (messageId: string) => {
+    setIsBlockingId(messageId);
+    setActionError(null);
+
+    try {
+      const res = await blockMessageSenderAction(messageId);
+      if (res.success) {
+        setBlockNotification(
+          res.alreadyBlocked
+            ? "The sender of this message is already blocked."
+            : "The anonymous sender has been blocked. They cannot send you future messages."
+        );
+        setBlockConfirmId(null);
+      } else {
+        setActionError(res.error || "Failed to block sender.");
+      }
+    } catch {
+      setActionError("An unexpected error occurred while blocking the sender.");
+    } finally {
+      setIsBlockingId(null);
     }
   };
 
@@ -421,6 +450,39 @@ export function RecipientInbox({
         </div>
       </div>
 
+      {/* Notification & Action Banners */}
+      {blockNotification && (
+        <div
+          role="status"
+          className="p-3 rounded-[8px] bg-[#e8f5e9] text-[#1b5e20] dark:bg-[#102a14] dark:text-[#81c784] text-xs flex items-center justify-between"
+        >
+          <span>{blockNotification}</span>
+          <button
+            type="button"
+            onClick={() => setBlockNotification(null)}
+            className="underline hover:no-underline font-medium ml-2"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {actionError && (
+        <div
+          role="alert"
+          className="p-3 rounded-[8px] border border-[#f97066]/30 bg-[#ffe8e6] dark:bg-[#3a1512] text-xs text-[#b42318] dark:text-[#f97066] flex items-center justify-between"
+        >
+          <span>{actionError}</span>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            className="underline hover:no-underline font-medium ml-2"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Message List Views */}
       {isDecrypting && decryptedMessages.length === 0 ? (
         // Restrained Skeleton loading state
@@ -549,13 +611,31 @@ export function RecipientInbox({
                     {/* Delete button */}
                     <button
                       type="button"
-                      onClick={() => setDeleteConfirmId(message.id)}
+                      onClick={() => {
+                        setDeleteConfirmId(message.id);
+                        setBlockConfirmId(null);
+                      }}
                       disabled={isDeleting}
                       className="p-1 rounded-[6px] text-[#6b6b6b] hover:text-[#b42318] dark:text-[#8f8f8a] dark:hover:text-[#f97066] transition-colors"
                       title="Delete from inbox"
                       aria-label="Delete message from inbox"
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+
+                    {/* Block anonymous sender button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBlockConfirmId(message.id);
+                        setDeleteConfirmId(null);
+                      }}
+                      disabled={isBlockingId === message.id}
+                      className="p-1 rounded-[6px] text-[#6b6b6b] hover:text-[#b42318] dark:text-[#8f8f8a] dark:hover:text-[#f97066] transition-colors"
+                      title="Block anonymous sender"
+                      aria-label="Block anonymous sender"
+                    >
+                      <ShieldOff className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -590,6 +670,47 @@ export function RecipientInbox({
                         className="h-7 text-xs"
                       >
                         {isDeleting ? "Deleting..." : "Delete"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Inline Block Confirmation Prompt */}
+                {blockConfirmId === message.id && (
+                  <div
+                    role="alert"
+                    aria-live="polite"
+                    className="p-3 rounded-[8px] bg-[#f4f4f5] dark:bg-[#1a1a1d] border border-[#ebebeb] dark:border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="space-y-0.5">
+                      <span className="text-[#111111] dark:text-[#f4f4f2] font-medium block">
+                        Block this anonymous sender?
+                      </span>
+                      <span className="text-[#6b6b6b] dark:text-[#8f8f8a] block">
+                        Neither of you will be able to send new messages to each other. Existing messages remain in your inbox.
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setBlockConfirmId(null)}
+                        disabled={isBlockingId === message.id}
+                        className="h-7 text-xs"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleBlockSender(message.id)}
+                        disabled={isBlockingId === message.id}
+                        className="h-7 text-xs"
+                      >
+                        {isBlockingId === message.id ? "Blocking..." : "Block Sender"}
                       </Button>
                     </div>
                   </div>

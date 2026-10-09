@@ -174,18 +174,21 @@ export type Database = {
       blocks: {
         Row: {
           id: string;
+          organization_id: string;
           blocker_id: string;
           blocked_id: string;
           created_at: string;
         };
         Insert: {
           id?: string;
+          organization_id: string;
           blocker_id: string;
           blocked_id: string;
           created_at?: string;
         };
         Update: {
           id?: string;
+          organization_id?: string;
           blocker_id?: string;
           blocked_id?: string;
           created_at?: string;
@@ -393,6 +396,34 @@ export type Database = {
       get_inbox_unread_count: {
         Args: Record<string, never>;
         Returns: number;
+      };
+      block_user: {
+        Args: {
+          p_target_public_id: string;
+        };
+        Returns: Json;
+      };
+      block_message_sender: {
+        Args: {
+          p_message_id: string;
+        };
+        Returns: Json;
+      };
+      unblock_user: {
+        Args: {
+          p_target_public_id: string;
+        };
+        Returns: Json;
+      };
+      get_blocked_users: {
+        Args: Record<string, never>;
+        Returns: {
+          public_id: string;
+          username: string;
+          display_name: string;
+          avatar_url: string | null;
+          blocked_at: string;
+        }[];
       };
     };
 

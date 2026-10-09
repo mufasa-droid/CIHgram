@@ -100,11 +100,17 @@ Mutation is handled atomically by `send_anonymous_message`:
 3. **Self-Messaging Prohibition**: Fails if `sender_id = resolved_recipient_user_id`.
 4. **Organization Scoping**: Validates that both sender and resolved recipient share an active membership in the same organization.
 5. **Key Verification**: Verifies that `key_id` belongs to the resolved recipient and is currently active (`is_active = true`).
-6. **Sliding-Window Rate Limiting**:
+6. **Deterministic Dual-Party Advisory Locking & Concurrency Protection**:
+   - Acquires transaction-scoped advisory locks on both sender and recipient in deterministic order: `min(sender_id, recipient_id)` then `max(sender_id, recipient_id)`.
+   - Prevents deadlocks and serializes concurrent block and send operations between the two parties.
+7. **Sliding-Window Rate Limiting**:
    - Max **5 messages per 60 seconds** per sender.
    - Max **50 messages per 24 hours** per sender.
-   - Enforced at the database level with transaction-scoped advisory locking (`pg_advisory_xact_lock`) to serialize concurrent requests per sender.
-7. **Atomic Persistence**: Inserts into `public.messages` using internal user IDs and returns minimal confirmation (`{ success: true, message_id }`).
+8. **Bidirectional Blocking Enforcement (Prompt 010B)**:
+   - Validates that neither party has blocked the other in `public.blocks`.
+   - If a block relationship exists in either direction (`sender -> recipient` OR `recipient -> sender`), aborts and returns the generic error `RECIPIENT_UNAVAILABLE`.
+   - Prevents oracle attacks: sender cannot infer whether the recipient has blocked them or is merely inactive/keyless.
+9. **Atomic Persistence**: Inserts into `public.messages` using internal user IDs and returns minimal confirmation (`{ success: true, message_id }`).
 
 ---
 
@@ -125,6 +131,6 @@ Mutation is handled atomically by `send_anonymous_message`:
 
 ## 8. Deferred Work
 
-- **Recipient Inbox & Client Decryption**: Scheduled for Prompt 008.
-- **User Blocking & Blocklist Queries**: Scheduled for Prompt 010.
-- **Abuse Reporting & Plaintext Disclosure**: Scheduled for Prompt 011.
+- **User Blocking**: Fully implemented in Prompt 010B (Migration 9).
+- **Abuse Reporting & Evidence Disclosure**: Scheduled for subsequent phases (Prompt 011).
+- **Moderation Action Dashboard & Sanctions**: Scheduled for subsequent phases.

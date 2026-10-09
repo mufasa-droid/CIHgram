@@ -123,6 +123,27 @@ Stores end-to-end encrypted message ciphertext envelopes.
 - `idx_messages_key_id`: Index on `key_id`.
 - **Anonymity & Privacy Guarantee**: Direct `SELECT` permission on this table is completely **revoked** from `authenticated` users to protect `sender_id`. Zero plaintext, zero subjects, zero previews.
 
+### 2.6 `public.blocks`
+
+Stores directional user block relationships within an organization tenant.
+
+| Column | Type | Nullable | Default | Description |
+| :--- | :--- | :---: | :--- | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | Primary Key |
+| `organization_id` | `UUID` | No | — | FK `public.organizations(id)` ON DELETE CASCADE |
+| `blocker_id` | `UUID` | No | — | FK `public.profiles(id)` ON DELETE CASCADE (internal auth UUID) |
+| `blocked_id` | `UUID` | No | — | FK `public.profiles(id)` ON DELETE CASCADE (internal auth UUID) |
+| `created_at` | `TIMESTAMPTZ` | No | `NOW()` | Timestamp block created |
+
+**Constraints & Indexes**:
+- `blocks_no_self_block_check`: `CHECK (blocker_id <> blocked_id)` (prohibits self-blocking).
+- `idx_blocks_unique_pair`: Unique index on `(blocker_id, blocked_id)` preventing duplicate active block relationships.
+- `idx_blocks_blocker`: B-Tree index on `(blocker_id, created_at DESC)`.
+- `idx_blocks_blocked`: B-Tree index on `(blocked_id)`.
+- `idx_blocks_organization`: B-Tree index on `(organization_id)`.
+- **Security & Privacy Guarantee**: Direct client table access is REVOKED. Managed strictly via controlled RPCs (`block_user`, `block_message_sender`, `unblock_user`, `get_blocked_users`).
+
+
 ---
 
 ## 3. Row Level Security (RLS) Philosophy
@@ -204,6 +225,14 @@ In PostgreSQL RLS, checking a user's membership in a table policy (e.g., in `pro
 - `get_organization_member_by_username`: Re-defined to project `p.public_id AS id`.
 - `get_active_public_key`: Re-defined to resolve recipient internal ID via `public_id` and project `v_target_public_id AS user_id` in output rows, preventing disclosure of target `auth.users.id`.
 - `send_anonymous_message`: Re-defined to accept recipient `public_id`, internally resolve to `v_recipient_user_id`, and verify active organization boundary and key validity before inserting into `public.messages`.
+
+### 4.8 User & Message Sender Blocking (`20261008000009_blocks_schema.sql`)
+- `public.blocks`: Created table with `CHECK (blocker_id <> blocked_id)` and `UNIQUE (blocker_id, blocked_id)`.
+- `block_user(p_target_public_id UUID)`: Resolves public target, verifies same active organization, acquires deterministic dual-party advisory locks, and idempotently inserts block.
+- `block_message_sender(p_message_id UUID)`: Verifies caller is authorized recipient, internally resolves sender UUID from `public.messages`, acquires deterministic advisory locks, and inserts block without ever exposing sender UUID to the client.
+- `unblock_user(p_target_public_id UUID)`: Removes only the authenticated user's own block of the target.
+- `get_blocked_users()`: Returns caller's block list projected strictly as safe public attributes (`public_id, username, display_name, avatar_url, blocked_at`).
+- `send_anonymous_message`: Updated with deterministic dual-party advisory locking and bidirectional block check (`A blocks B` OR `B blocks A`). Returns generic `RECIPIENT_UNAVAILABLE` to eliminate oracle attacks.
 
 ---
 

@@ -9,6 +9,7 @@ import {
   ProfileForm,
   AccountSection,
   EncryptionStatusCard,
+  BlockedAccountsCard,
   SignOutCard,
 } from "@/components/profile";
 
@@ -78,7 +79,10 @@ export default async function SettingsPage() {
           {/* 3. End-to-End Encryption Key Security */}
           <EncryptionStatusCard serverKeyStatus={serverKeyStatus} />
 
-          {/* 4. Session Management & Sign Out */}
+          {/* 4. Blocked Accounts Management */}
+          <BlockedAccountsCard />
+
+          {/* 5. Session Management & Sign Out */}
           <SignOutCard />
         </div>
       </Container>

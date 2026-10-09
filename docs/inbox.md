@@ -132,6 +132,14 @@ All message mutations are server-authorized and strictly verify `recipient_id = 
 - Sender accountability metadata and the 30-day safety retention purge lifecycle are preserved.
 - UI requires explicit user confirmation prior to mutation.
 
+### 5.4 Block Anonymous Sender (`blockMessageSenderAction`)
+- Stored procedure `block_message_sender(p_message_id UUID)`.
+- Validates caller is the authorized recipient (`recipient_id = auth.uid()`).
+- Internally resolves `sender_id` from `public.messages`.
+- Inserts block into `public.blocks` without ever disclosing sender UUID or identity to the browser.
+- Prospective only: does NOT modify or automatically delete existing messages from the inbox, eliminating block-as-an-oracle deanonymization attacks.
+- UI requires explicit user confirmation prior to execution.
+
 ---
 
 ## 6. Pagination, Performance & Memory Lifecycle

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MessageComposer } from "@/components/composer";
 import { searchMembersAction } from "@/lib/directory/actions";
+import { blockUserAction } from "@/lib/blocking/actions";
 import type { PublicMember } from "@/lib/directory/types";
 
 export interface MemberDirectoryProps {
@@ -24,6 +25,12 @@ export function MemberDirectory({
   const [selectedRecipient, setSelectedRecipient] = React.useState<PublicMember | null>(null);
   const [isComposerOpen, setIsComposerOpen] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Blocking dialog states
+  const [blockingMember, setBlockingMember] = React.useState<PublicMember | null>(null);
+  const [isBlockingSubmitting, setIsBlockingSubmitting] = React.useState(false);
+  const [blockError, setBlockError] = React.useState<string | null>(null);
+  const [blockNotification, setBlockNotification] = React.useState<string | null>(null);
 
   const members = query.trim() ? (searchResults ?? []) : initialMembers;
 
@@ -49,6 +56,18 @@ export function MemberDirectory({
 
     return () => clearTimeout(timer);
   }, [query]);
+
+  // Close block dialog on Escape key
+  React.useEffect(() => {
+    if (!blockingMember) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && !isBlockingSubmitting) {
+        setBlockingMember(null);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [blockingMember, isBlockingSubmitting]);
 
   return (
     <div className="space-y-6">
@@ -107,6 +126,23 @@ export function MemberDirectory({
         }}
       />
 
+      {/* Notification banner */}
+      {blockNotification && (
+        <div
+          role="status"
+          className="p-3 rounded-[8px] bg-[#e8f5e9] text-[#1b5e20] dark:bg-[#102a14] dark:text-[#81c784] text-xs flex items-center justify-between"
+        >
+          <span>{blockNotification}</span>
+          <button
+            type="button"
+            onClick={() => setBlockNotification(null)}
+            className="underline hover:no-underline font-medium ml-2"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Error state */}
       {error && (
         <div
@@ -154,18 +190,31 @@ export function MemberDirectory({
                 </div>
               </div>
 
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setSelectedRecipient(member);
-                  setIsComposerOpen(true);
-                }}
-                aria-label={`Send anonymous message to ${member.displayName}`}
-                className="shrink-0"
-              >
-                Send Message
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedRecipient(member);
+                    setIsComposerOpen(true);
+                  }}
+                  aria-label={`Send anonymous message to ${member.displayName}`}
+                >
+                  Send Message
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setBlockError(null);
+                    setBlockingMember(member);
+                  }}
+                  aria-label={`Block ${member.displayName}`}
+                  className="text-xs text-[#6b6b6b] hover:text-[#b42318] dark:text-[#8f8f8a] dark:hover:text-[#f97066]"
+                >
+                  Block
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -191,6 +240,92 @@ export function MemberDirectory({
               </p>
             </>
           )}
+        </div>
+      )}
+
+      {/* Block Confirmation Dialog */}
+      {blockingMember && (
+        <div
+          role="presentation"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-zinc-950/40 dark:bg-black/60 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isBlockingSubmitting) {
+              setBlockingMember(null);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="block-member-title"
+            aria-describedby="block-member-desc"
+            className="w-full max-w-md bg-white dark:bg-[#111113] rounded-2xl border border-[#ebebeb] dark:border-white/[0.08] shadow-2xl p-6 space-y-4"
+          >
+            <div className="space-y-1">
+              <h3
+                id="block-member-title"
+                className="text-base font-medium text-[#111111] dark:text-[#f4f4f2]"
+              >
+                Block {blockingMember.displayName}?
+              </h3>
+              <p
+                id="block-member-desc"
+                className="text-xs text-[#6b6b6b] dark:text-[#8f8f8a] leading-relaxed"
+              >
+                Neither you nor <strong className="text-[#111111] dark:text-[#f4f4f2]">@{blockingMember.username}</strong> will be able to send new anonymous messages to each other. Existing messages in your inbox will not be affected. You can unblock this member at any time in Settings.
+              </p>
+            </div>
+
+            {blockError && (
+              <div
+                role="alert"
+                className="p-3 rounded-[8px] border border-[#f97066]/30 bg-[#ffe8e6] dark:bg-[#3a1512] text-xs text-[#b42318] dark:text-[#f97066]"
+              >
+                {blockError}
+              </div>
+            )}
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setBlockingMember(null)}
+                disabled={isBlockingSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={async () => {
+                  setIsBlockingSubmitting(true);
+                  setBlockError(null);
+                  try {
+                    const res = await blockUserAction(blockingMember.id);
+                    if (res.success) {
+                      setBlockNotification(
+                        res.alreadyBlocked
+                          ? `@${blockingMember.username} is already blocked.`
+                          : `@${blockingMember.username} has been blocked.`
+                      );
+                      setBlockingMember(null);
+                    } else {
+                      setBlockError(res.error || "Failed to block member.");
+                    }
+                  } catch {
+                    setBlockError("An unexpected error occurred. Please try again.");
+                  } finally {
+                    setIsBlockingSubmitting(false);
+                  }
+                }}
+                disabled={isBlockingSubmitting}
+              >
+                {isBlockingSubmitting ? "Blocking..." : "Block Member"}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

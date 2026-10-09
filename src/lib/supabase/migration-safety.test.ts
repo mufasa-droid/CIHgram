@@ -18,6 +18,7 @@ describe("Prompt 007B: Migration & Admission Safety Invariant Checks", () => {
     "20261008000006_recipient_inbox_schema.sql",
     "20261008000007_harden_inbox_organization_boundary.sql",
     "20261008000008_public_profile_identifiers.sql",
+    "20261008000009_blocks_schema.sql",
   ];
 
   const completeSetupSql = fs.readFileSync(completeSetupPath, "utf-8");
@@ -138,6 +139,65 @@ describe("Prompt 007B: Migration & Admission Safety Invariant Checks", () => {
       expect(migration8Sql).toContain("v_sender_id = v_recipient_user_id");
       expect(migration8Sql).toContain("REVOKE ALL ON FUNCTION public.send_anonymous_message(UUID, UUID, TEXT, INTEGER) FROM PUBLIC, anon;");
       expect(migration8Sql).toContain("GRANT EXECUTE ON FUNCTION public.send_anonymous_message(UUID, UUID, TEXT, INTEGER) TO authenticated;");
+    });
+  });
+
+  describe("5. Blocks Schema & Send Enforcement Invariants (Prompt 010B)", () => {
+    const migration9Sql = fs.readFileSync(
+      path.join(migrationsDir, "20261008000009_blocks_schema.sql"),
+      "utf-8"
+    );
+
+    it("creates public.blocks table with self-block check, unique pair, and RLS", () => {
+      expect(migration9Sql).toContain("CREATE TABLE IF NOT EXISTS public.blocks");
+      expect(migration9Sql).toContain("CONSTRAINT blocks_no_self_block CHECK (blocker_id <> blocked_id)");
+      expect(migration9Sql).toContain("CONSTRAINT blocks_unique_pair UNIQUE (blocker_id, blocked_id)");
+      expect(migration9Sql).toContain("ALTER TABLE public.blocks ENABLE ROW LEVEL SECURITY;");
+      expect(migration9Sql).toContain("REVOKE ALL ON public.blocks FROM PUBLIC, anon, authenticated;");
+    });
+
+    it("defines block_user RPC with SECURITY DEFINER, search_path, and self-block prevention", () => {
+      expect(migration9Sql).toContain("CREATE OR REPLACE FUNCTION public.block_user");
+      expect(migration9Sql).toContain("SECURITY DEFINER");
+      expect(migration9Sql).toContain("SET search_path = public, pg_temp");
+      expect(migration9Sql).toContain("IF v_blocker_id = v_blocked_id THEN");
+      expect(migration9Sql).toContain("RAISE EXCEPTION 'CANNOT_BLOCK_SELF: You cannot block yourself'");
+      expect(migration9Sql).toContain("REVOKE ALL ON FUNCTION public.block_user(UUID) FROM PUBLIC, anon;");
+      expect(migration9Sql).toContain("GRANT EXECUTE ON FUNCTION public.block_user(UUID) TO authenticated;");
+    });
+
+    it("defines block_message_sender RPC resolving sender from message record without exposing sender UUID", () => {
+      expect(migration9Sql).toContain("CREATE OR REPLACE FUNCTION public.block_message_sender");
+      expect(migration9Sql).toContain("SELECT m.sender_id INTO v_blocked_id");
+      expect(migration9Sql).toContain("WHERE m.id = p_message_id");
+      expect(migration9Sql).toContain("AND m.recipient_id = v_blocker_id");
+      expect(migration9Sql).toContain("AND m.organization_id = v_org_id;");
+      expect(migration9Sql).toContain("REVOKE ALL ON FUNCTION public.block_message_sender(UUID) FROM PUBLIC, anon;");
+      expect(migration9Sql).toContain("GRANT EXECUTE ON FUNCTION public.block_message_sender(UUID) TO authenticated;");
+    });
+
+    it("defines unblock_user RPC deleting only the caller's own block", () => {
+      expect(migration9Sql).toContain("CREATE OR REPLACE FUNCTION public.unblock_user");
+      expect(migration9Sql).toContain("WHERE blocker_id = v_blocker_id");
+      expect(migration9Sql).toContain("AND blocked_id = v_blocked_id;");
+    });
+
+    it("defines get_blocked_users RPC returning safe public projection", () => {
+      expect(migration9Sql).toContain("CREATE OR REPLACE FUNCTION public.get_blocked_users()");
+      expect(migration9Sql).toContain("p.public_id");
+      expect(migration9Sql).toContain("p.username");
+      expect(migration9Sql).toContain("p.display_name");
+      expect(migration9Sql).toContain("p.avatar_url");
+      expect(migration9Sql).toContain("b.created_at AS blocked_at");
+      expect(migration9Sql).not.toContain("p.email");
+    });
+
+    it("enforces bidirectional block check and dual-party advisory locking in send_anonymous_message", () => {
+      expect(migration9Sql).toContain("CREATE OR REPLACE FUNCTION public.send_anonymous_message");
+      expect(migration9Sql).toContain("pg_advisory_xact_lock");
+      expect(migration9Sql).toContain("WHERE (b.blocker_id = v_recipient_user_id AND b.blocked_id = v_sender_id)");
+      expect(migration9Sql).toContain("OR (b.blocker_id = v_sender_id AND b.blocked_id = v_recipient_user_id)");
+      expect(migration9Sql).toContain("RAISE EXCEPTION 'RECIPIENT_UNAVAILABLE: Unable to deliver message to recipient'");
     });
   });
 });
