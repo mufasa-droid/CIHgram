@@ -70,6 +70,11 @@ export function isDomainAllowed(
       return false;
     }
 
+    // Wildcard '*' is strictly prohibited; domain admission requires valid domain names
+    if (normalizedAllowed === "*") {
+      return false;
+    }
+
     // Exact domain match
     if (normalizedUserDomain === normalizedAllowed) {
       return true;

@@ -50,17 +50,16 @@ export function MemberDirectory({
     return () => clearTimeout(timer);
   }, [query]);
 
-
   return (
     <div className="space-y-6">
       {/* Directory Heading & Search Bar */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-xl font-medium tracking-tight text-zinc-950 dark:text-zinc-50">
+          <h2 className="text-xl font-medium tracking-tight text-[#111111] dark:text-[#f4f4f2]">
             People
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Discover members in {organizationName} to send an anonymous message.
+          <p className="text-xs text-[#6b6b6b] dark:text-[#8f8f8a]">
+            Discover peers in {organizationName} to send an anonymous sealed message.
           </p>
         </div>
 
@@ -71,11 +70,12 @@ export function MemberDirectory({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name or handle..."
             aria-label="Search organization members"
-            className="pl-9 h-11 text-sm bg-white dark:bg-zinc-950/60"
+            inputSize="sm"
+            className="pl-9 h-9 text-xs bg-white dark:bg-[#111113]"
           />
-          <div className="pointer-events-none absolute left-3 top-3 text-zinc-400 dark:text-zinc-500">
+          <div className="pointer-events-none absolute left-3 top-2.5 text-[#6b6b6b] dark:text-[#8f8f8a]">
             <svg
-              className="h-5 w-5"
+              className="h-4 w-4"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -90,7 +90,7 @@ export function MemberDirectory({
             </svg>
           </div>
           {isLoading && (
-            <div className="absolute right-3 top-3.5 text-xs text-zinc-400 dark:text-zinc-500 animate-pulse">
+            <div className="absolute right-3 top-2.5 text-xs text-[#6b6b6b] dark:text-[#8f8f8a] animate-pulse">
               Searching...
             </div>
           )}
@@ -109,54 +109,60 @@ export function MemberDirectory({
 
       {/* Error state */}
       {error && (
-        <div className="rounded-md bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
+        <div
+          role="alert"
+          className="rounded-[8px] border border-[#f97066]/30 bg-[#ffe8e6] dark:bg-[#3a1512] p-3 text-xs text-[#b42318] dark:text-[#f97066]"
+        >
           {error}
         </div>
       )}
 
-      {/* Member Directory List */}
+      {/* 71UI Member Directory List Rows */}
       {members.length > 0 ? (
-        <div role="list" className="divide-y divide-zinc-200/80 dark:divide-zinc-800/80 border-t border-b border-zinc-200/80 dark:border-zinc-800/80">
+        <div
+          role="list"
+          className="divide-y divide-[#ebebeb] dark:divide-white/[0.08] border-t border-b border-[#ebebeb] dark:border-white/[0.08]"
+        >
           {members.map((member) => (
             <div
               key={member.id}
               role="listitem"
-              className="py-3.5 px-1 flex items-center justify-between gap-4 group hover:bg-zinc-100/50 dark:hover:bg-zinc-900/30 rounded-sm transition-colors"
+              className="py-2.5 px-3 flex items-center justify-between gap-4 group hover:bg-[#f4f4f5] dark:hover:bg-[#1a1a1d] rounded-[8px] transition-colors"
             >
-              <div className="flex items-center gap-3.5 min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
                 {member.avatarUrl ? (
                   <Image
                     src={member.avatarUrl}
                     alt=""
-                    width={40}
-                    height={40}
+                    width={36}
+                    height={36}
                     unoptimized
-                    className="h-10 w-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-800"
+                    className="h-9 w-9 rounded-full object-cover border border-[#ebebeb] dark:border-white/[0.08]"
                   />
                 ) : (
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f4f4f5] text-xs font-medium text-[#111111] dark:bg-[#1a1a1d] dark:text-[#f4f4f2] border border-[#ebebeb] dark:border-white/[0.08]">
                     {member.displayName.charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50 truncate">
+                  <p className="text-sm font-medium text-[#111111] dark:text-[#f4f4f2] truncate">
                     {member.displayName}
                   </p>
-                  <p className="text-xs font-mono text-zinc-500 dark:text-zinc-400 truncate">
+                  <p className="text-xs font-mono text-[#6b6b6b] dark:text-[#8f8f8a] truncate">
                     @{member.username}
                   </p>
                 </div>
               </div>
 
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => {
                   setSelectedRecipient(member);
                   setIsComposerOpen(true);
                 }}
                 aria-label={`Send anonymous message to ${member.displayName}`}
-                className="shrink-0 text-xs font-normal"
+                className="shrink-0"
               >
                 Send Message
               </Button>
@@ -164,24 +170,24 @@ export function MemberDirectory({
           ))}
         </div>
       ) : (
-        /* Empty States */
-        <div className="py-12 text-center space-y-2">
+        /* 71UI Empty States */
+        <div className="py-16 text-center space-y-2 rounded-2xl border border-dashed border-[#ebebeb] dark:border-white/[0.08] bg-[#fafafa]/50 dark:bg-[#111113]/50">
           {query.trim() ? (
             <>
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+              <p className="text-sm font-medium text-[#111111] dark:text-[#f4f4f2]">
                 No people found matching &ldquo;{query}&rdquo;
               </p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs text-[#6b6b6b] dark:text-[#8f8f8a]">
                 Try searching with a different name or username handle.
               </p>
             </>
           ) : (
             <>
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+              <p className="text-sm font-medium text-[#111111] dark:text-[#f4f4f2]">
                 No other members found
               </p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                As colleagues join {organizationName}, they will appear here.
+              <p className="text-xs text-[#6b6b6b] dark:text-[#8f8f8a]">
+                As colleagues join {organizationName}, they will appear in this directory.
               </p>
             </>
           )}

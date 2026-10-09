@@ -2,27 +2,53 @@ import { Container } from "@/components/ui/container";
 import { Surface } from "@/components/ui/surface";
 import { Button } from "@/components/ui/button";
 
-export default function LoginPage() {
+export const instant = false;
+
+interface LoginPageProps {
+  searchParams: Promise<{ error?: string }>;
+}
+
+const ERROR_MESSAGES: Record<string, string> = {
+  oauth_init_failed:
+    "Unable to connect to authentication service. Please verify your Supabase URL and Google provider setup.",
+  auth_failed: "Authentication with Google was cancelled or failed. Please try again.",
+  server_error: "An internal authentication error occurred. Please try again.",
+  invalid_request: "Invalid authentication request.",
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const errorMessage = params.error ? ERROR_MESSAGES[params.error] ?? "Authentication error." : null;
+
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-16">
+    <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center py-16">
       <Container size="sm">
         <Surface className="p-8 sm:p-10 space-y-6">
           <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-medium tracking-tight text-zinc-950 dark:text-zinc-50">
+            <h1 className="text-2xl font-medium tracking-tight text-[#111111] dark:text-[#f4f4f2]">
               Sign In
             </h1>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Connect with your organization Google account to discover members and read your messages.
+            <p className="text-sm text-[#6b6b6b] dark:text-[#8f8f8a] max-w-xs mx-auto">
+              Connect with your Google account to discover peers and access encrypted messages.
             </p>
           </div>
+
+          {errorMessage && (
+            <div
+              role="alert"
+              className="rounded-[8px] border border-[#f97066]/30 bg-[#ffe8e6] dark:bg-[#3a1512] p-3 text-xs text-[#b42318] dark:text-[#f97066] leading-relaxed"
+            >
+              {errorMessage}
+            </div>
+          )}
 
           <div className="pt-2">
             <form action="/auth/login" method="POST">
               <Button
                 type="submit"
-                variant="outline"
+                variant="secondary"
                 size="lg"
-                className="w-full justify-center gap-3 border-zinc-300 dark:border-zinc-700 font-normal"
+                className="w-full justify-center gap-3 font-normal"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
                   <path
@@ -47,9 +73,9 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <div className="pt-2 text-center">
-            <p className="text-xs text-zinc-500 dark:text-zinc-500">
-              Only authorized organization domain accounts may join.
+          <div className="pt-2 text-center border-t border-[#ebebeb] dark:border-white/[0.08]">
+            <p className="text-xs text-[#6b6b6b] dark:text-[#8f8f8a]">
+              Your email address is never shared with message recipients.
             </p>
           </div>
         </Surface>

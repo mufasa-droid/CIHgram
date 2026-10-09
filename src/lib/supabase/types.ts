@@ -361,6 +361,36 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_recipient_inbox: {
+        Args: {
+          p_cursor?: string | null;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
+      mark_message_read: {
+        Args: {
+          p_message_id: string;
+        };
+        Returns: Json;
+      };
+      set_message_starred: {
+        Args: {
+          p_message_id: string;
+          p_is_starred: boolean;
+        };
+        Returns: Json;
+      };
+      delete_message_for_recipient: {
+        Args: {
+          p_message_id: string;
+        };
+        Returns: Json;
+      };
+      get_inbox_unread_count: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
     };
 
     Enums: Record<string, never>;

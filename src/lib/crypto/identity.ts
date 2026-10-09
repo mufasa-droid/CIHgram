@@ -49,17 +49,7 @@ export async function initializeUserIdentity(): Promise<IdentityInitResult> {
     };
   }
 
-  // 1. Check local IndexedDB storage
-  const localIdentity = await getLocalIdentity();
-  if (localIdentity) {
-    return {
-      state: "READY",
-      identity: localIdentity,
-      isNewIdentity: false,
-    };
-  }
-
-  // 2. Local identity missing: check server key status
+  // 1. Check server key status
   const statusResult = await getUserKeyStatusAction();
   if (!statusResult.success) {
     throw new CryptoError("Unable to verify encryption key status with server");
@@ -67,7 +57,35 @@ export async function initializeUserIdentity(): Promise<IdentityInitResult> {
 
   const serverStatus = statusResult.status;
 
-  // 3. Dangerous state check: server key exists, but local key is missing
+  // 2. Check local IndexedDB storage
+  const localIdentity = await getLocalIdentity();
+  if (localIdentity) {
+    // If the server has an active key for this account, verify it matches
+    if (serverStatus?.hasActiveKey && serverStatus.activePublicKey) {
+      const localPkBase64 = await toBase64(localIdentity.publicKey);
+      if (localPkBase64 === serverStatus.activePublicKey) {
+        return {
+          state: "READY",
+          identity: localIdentity,
+          isNewIdentity: false,
+        };
+      }
+
+      // Mismatch: local key belongs to another account or is obsolete
+      // Purge foreign key to prevent cross-account pollution
+      await clearLocalIdentity();
+      return {
+        state: "KEY_MISSING_RESTORE_REQUIRED",
+        serverPublicKey: serverStatus.activePublicKey,
+        serverKeyId: serverStatus.activeKeyId || "",
+      };
+    }
+
+    // Server has no active key for this account. If local key was left by a previous user, clear it.
+    await clearLocalIdentity();
+  }
+
+  // 3. Server key exists, but local key is missing (or was purged due to mismatch)
   if (serverStatus?.hasActiveKey && serverStatus.activePublicKey && serverStatus.activeKeyId) {
     return {
       state: "KEY_MISSING_RESTORE_REQUIRED",

@@ -1,7 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { extractEmailDomain, isDomainAllowed } from "./domains";
 
 describe("Domain Extraction and Validation", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
   describe("extractEmailDomain", () => {
     it("extracts and normalizes valid domains", () => {
       expect(extractEmailDomain("alice@cih.org")).toBe("cih.org");
@@ -56,6 +59,17 @@ describe("Domain Extraction and Validation", () => {
       // With allowSubdomains = true
       expect(isDomainAllowed("dev.cih.org", ["cih.org"], true)).toBe(true);
       expect(isDomainAllowed("evilcih.org", ["cih.org"], true)).toBe(false);
+    });
+
+    it("strictly rejects wildcard '*' in all environments to enforce valid domain boundaries", () => {
+      expect(isDomainAllowed("gmail.com", ["*"])).toBe(false);
+      expect(isDomainAllowed("cih.org", ["*"])).toBe(false);
+      expect(isDomainAllowed("custom-domain.xyz", ["*"])).toBe(false);
+      expect(isDomainAllowed("user.sub.domain.co.uk", ["*"])).toBe(false);
+      expect(isDomainAllowed(null, ["*"])).toBe(false);
+      // Exact configured domain matching works as expected
+      expect(isDomainAllowed("cih.org", ["cih.org"])).toBe(true);
+      expect(isDomainAllowed("attacker.com", ["cih.org"])).toBe(false);
     });
   });
 });

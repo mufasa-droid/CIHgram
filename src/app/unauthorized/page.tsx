@@ -10,19 +10,17 @@ export const metadata = {
   description: "Account domain not authorized for this workspace.",
 };
 
-
-
 export default async function UnauthorizedPage() {
   const user = await getCurrentUser();
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-16">
+    <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center py-16">
       <Container size="sm">
         <Surface className="p-8 sm:p-10 space-y-6 text-center">
           <div className="space-y-3">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#f4f4f5] text-[#111111] dark:bg-[#1a1a1d] dark:text-[#f4f4f2]">
               <svg
-                className="h-5 w-5"
+                className="h-5 w-5 text-[#8a4b00]"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
@@ -36,26 +34,26 @@ export default async function UnauthorizedPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-medium tracking-tight text-zinc-950 dark:text-zinc-50">
+            <h1 className="text-2xl font-medium tracking-tight text-[#111111] dark:text-[#f4f4f2]">
               Access Restricted
             </h1>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-sm mx-auto leading-relaxed">
+            <p className="text-sm text-[#6b6b6b] dark:text-[#8f8f8a] max-w-sm mx-auto leading-relaxed">
               {user?.email ? (
                 <>
-                  Your account (<span className="font-medium text-zinc-900 dark:text-zinc-200">{user.email}</span>) does not belong to an authorized organization domain.
+                  Your account (<span className="font-medium text-[#111111] dark:text-[#f4f4f2]">{user.email}</span>) does not belong to an authorized organization domain.
                 </>
               ) : (
-                "Your Google account domain is not authorized for this platform."
+                "Your account domain is not authorized for this platform."
               )}
             </p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-500 max-w-xs mx-auto">
-              Please sign in with your verified organization Google account or contact your administrator.
+            <p className="text-xs text-[#6b6b6b] dark:text-[#8f8f8a] max-w-xs mx-auto">
+              Please sign in with an authorized account or contact your workspace administrator.
             </p>
           </div>
 
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 border-t border-[#ebebeb] dark:border-white/[0.08]">
             <form action="/auth/signout" method="POST">
-              <Button type="submit" variant="outline" size="md">
+              <Button type="submit" variant="secondary" size="md">
                 Sign Out
               </Button>
             </form>

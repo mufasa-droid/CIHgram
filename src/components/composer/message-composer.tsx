@@ -110,10 +110,10 @@ function MessageComposerDialog({
         aria-modal="true"
         aria-labelledby="composer-title"
         aria-describedby="composer-desc"
-        className="w-full max-w-lg bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-200/90 dark:border-zinc-800 shadow-2xl shadow-zinc-950/10 overflow-hidden flex flex-col motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-150"
+        className="w-full max-w-lg bg-white dark:bg-[#111113] rounded-2xl border border-[#ebebeb] dark:border-white/[0.08] shadow-2xl shadow-black/10 overflow-hidden flex flex-col motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-150"
       >
         {/* Composer Header */}
-        <div className="p-5 sm:p-6 border-b border-zinc-100 dark:border-zinc-800/80 flex items-start justify-between gap-4">
+        <div className="p-5 sm:p-6 border-b border-[#ebebeb] dark:border-white/[0.08] flex items-start justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {recipient.avatarUrl ? (
               <Image
@@ -122,21 +122,21 @@ function MessageComposerDialog({
                 width={40}
                 height={40}
                 unoptimized
-                className="h-10 w-10 rounded-full object-cover border border-zinc-200 dark:border-zinc-800 shrink-0"
+                className="h-10 w-10 rounded-full object-cover border border-[#ebebeb] dark:border-white/[0.08] shrink-0"
               />
             ) : (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f4f4f5] text-xs font-semibold text-[#111111] dark:bg-[#1a1a1d] dark:text-[#f4f4f2] border border-[#ebebeb] dark:border-white/[0.08]">
                 {recipient.displayName.charAt(0).toUpperCase()}
               </div>
             )}
             <div className="min-w-0">
               <h2
                 id="composer-title"
-                className="text-base font-semibold text-zinc-950 dark:text-zinc-50 truncate"
+                className="text-base font-medium text-[#111111] dark:text-[#f4f4f2] truncate"
               >
                 Send to {recipient.displayName}
               </h2>
-              <p className="text-xs font-mono text-zinc-500 dark:text-zinc-400 truncate">
+              <p className="text-xs font-mono text-[#6b6b6b] dark:text-[#8f8f8a] truncate">
                 @{recipient.username}
               </p>
             </div>
@@ -147,7 +147,7 @@ function MessageComposerDialog({
             onClick={handleClose}
             disabled={isSubmitting}
             aria-label="Close message composer"
-            className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors disabled:opacity-50"
+            className="p-1.5 rounded-[8px] text-[#6b6b6b] hover:text-[#111111] dark:hover:text-[#f4f4f2] hover:bg-[#f4f4f5] dark:hover:bg-[#1a1a1d] transition-colors disabled:opacity-50"
           >
             <svg
               className="w-5 h-5"
@@ -167,10 +167,10 @@ function MessageComposerDialog({
           {/* Subtle Privacy Explanation */}
           <div
             id="composer-desc"
-            className="rounded-lg bg-zinc-50 dark:bg-zinc-900/60 p-3 border border-zinc-200/60 dark:border-zinc-800/60 flex items-start gap-2.5 text-xs text-zinc-600 dark:text-zinc-400"
+            className="rounded-[8px] bg-[#fafafa] dark:bg-[#1a1a1d]/60 p-3 border border-[#ebebeb] dark:border-white/[0.08] flex items-start gap-2.5 text-xs text-[#6b6b6b] dark:text-[#8f8f8a]"
           >
             <svg
-              className="w-4 h-4 text-zinc-500 shrink-0 mt-0.5"
+              className="w-4 h-4 text-[#0070e0] shrink-0 mt-0.5"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -184,7 +184,7 @@ function MessageComposerDialog({
               />
             </svg>
             <div>
-              <span className="font-medium text-zinc-900 dark:text-zinc-200">
+              <span className="font-medium text-[#111111] dark:text-[#f4f4f2]">
                 End-to-end encrypted & anonymous.
               </span>{" "}
               Your identity is withheld from {recipient.displayName}. The note is sealed locally on your device.
@@ -194,7 +194,7 @@ function MessageComposerDialog({
           {/* Success State */}
           {isSuccess ? (
             <div className="py-8 text-center space-y-4">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#caface] text-[#0e7a2f] dark:bg-[#0f2a19] dark:text-[#5fd68a]">
                 <svg
                   className="h-6 w-6"
                   fill="none"
@@ -207,10 +207,10 @@ function MessageComposerDialog({
                 </svg>
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-medium text-zinc-950 dark:text-zinc-50">
+                <h3 className="text-base font-medium text-[#111111] dark:text-[#f4f4f2]">
                   Message Delivered
                 </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mx-auto">
+                <p className="text-xs text-[#6b6b6b] dark:text-[#8f8f8a] max-w-sm mx-auto">
                   Your encrypted message was saved anonymously. The composer draft has been cleared.
                 </p>
               </div>
@@ -226,10 +226,10 @@ function MessageComposerDialog({
               {error && (
                 <div
                   role="alert"
-                  className="rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200/80 dark:border-red-900/40 flex items-start gap-2"
+                  className="rounded-[8px] bg-[#ffe8e6] dark:bg-[#3a1512] p-3 text-xs text-[#b42318] dark:text-[#f97066] border border-[#f97066]/30 flex items-start gap-2"
                 >
                   <svg
-                    className="w-4 h-4 text-red-500 shrink-0 mt-0.5"
+                    className="w-4 h-4 text-[#d92d20] shrink-0 mt-0.5"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
@@ -260,15 +260,15 @@ function MessageComposerDialog({
                   placeholder={`Write a thoughtful, honest note to ${recipient.displayName}...`}
                   rows={6}
                   disabled={isSubmitting}
-                  className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-3.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors resize-none disabled:opacity-50"
+                  className="w-full rounded-[8px] border border-[#8a8a8a] dark:border-white/40 bg-white dark:bg-[#111113] p-3.5 text-sm text-[#111111] dark:text-[#f4f4f2] placeholder:text-[#6b6b6b] dark:placeholder:text-[#8f8f8a] focus:outline-none focus:ring-2 focus:ring-[#0070e0] focus:border-transparent transition-colors resize-none disabled:opacity-50"
                 />
 
                 {/* Character Count & Shortcuts */}
-                <div className="flex items-center justify-between text-xs text-zinc-400 dark:text-zinc-500 px-0.5">
+                <div className="flex items-center justify-between text-xs text-[#6b6b6b] dark:text-[#8f8f8a] px-0.5">
                   <span className="hidden sm:inline">Press ⌘+Enter to send</span>
                   <span
                     className={`font-mono tabular-nums ${
-                      isOverLimit ? "text-red-600 font-semibold" : ""
+                      isOverLimit ? "text-[#d92d20] font-semibold" : ""
                     }`}
                   >
                     {charCount.toLocaleString()} / {MAX_CHARACTERS.toLocaleString()}

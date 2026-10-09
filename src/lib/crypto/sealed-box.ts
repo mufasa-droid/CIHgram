@@ -161,11 +161,17 @@ export async function decryptSealedBox(
   recipientPrivateKey: Uint8Array,
   recipientPublicKey?: Uint8Array
 ): Promise<string> {
-  const s = await getSodium();
   const decryptedBytes = await decryptSealedBoxRaw(
     ciphertextBase64,
     recipientPrivateKey,
     recipientPublicKey
   );
-  return s.to_string(decryptedBytes);
+
+  try {
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+    return decoder.decode(decryptedBytes);
+  } catch {
+    throw new CryptoError("This message could not be decrypted with your current key.");
+  }
 }
+

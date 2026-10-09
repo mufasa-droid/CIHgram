@@ -181,6 +181,21 @@ In PostgreSQL RLS, checking a user's membership in a table policy (e.g., in `pro
 ### 4.4 Anonymous Messaging Procedures (`20261008000004_messages_schema.sql`)
 - `send_anonymous_message(p_recipient_id, p_key_id, p_ciphertext, p_protocol_version)`: Authenticates sender from session `auth.uid()`, enforces distinct sender/recipient, validates shared active organization membership, verifies recipient's active public key ID, enforces sliding-window rate limits (max 5/min, max 50/day), and atomically persists the encrypted envelope into `public.messages`.
 
+### 4.5 Recipient Inbox & Message Action Procedures (`20261008000006_recipient_inbox_schema.sql`)
+- `recipient_inbox_messages`: PostgreSQL Security Barrier View (`WITH (security_barrier = true)`) projecting strictly recipient-safe columns (`id, recipient_id, ciphertext, key_id, protocol_version, created_at, is_read, is_starred`) where `recipient_id = auth.uid() AND deleted_by_recipient = false`. Strictly omits `sender_id` and `organization_id` at the database level.
+- `get_recipient_inbox(p_cursor, p_limit)`: `SECURITY DEFINER` procedure with fixed `search_path = public, pg_temp` providing bounded cursor pagination (1–50 limit) for non-deleted recipient messages.
+- `mark_message_read(p_message_id)`: Idempotently marks a message as read scoped strictly to `recipient_id = auth.uid()`.
+- `set_message_starred(p_message_id, p_is_starred)`: Toggles favorite state scoped strictly to `recipient_id = auth.uid()`.
+- `delete_message_for_recipient(p_message_id)`: Performs soft-delete (`deleted_by_recipient = true`) scoped to `recipient_id = auth.uid()`, preserving server accountability data for the 30-day purge lifecycle.
+- `get_inbox_unread_count()`: Returns recipient unread message count without returning message content.
+- **Indexes**: Added partial index `idx_messages_recipient_unread` on `recipient_id WHERE deleted_by_recipient = false AND is_read = false` and `idx_messages_recipient_starred` on `(recipient_id, created_at DESC) WHERE deleted_by_recipient = false AND is_starred = true`.
+
+### 4.6 Inbox Organization Boundary Hardening (`20261008000007_harden_inbox_organization_boundary.sql`)
+- `recipient_inbox_messages`: Re-defined `WITH (security_barrier = true)` to enforce that the caller must possess an active organization membership (`om.status = 'active'`) matching the message's `organization_id`, ensuring that suspended or departed users cannot read organization messages.
+- `get_recipient_inbox`: Re-defined to query directly through `recipient_inbox_messages` and verify caller has at least one active organization membership.
+- `mark_message_read`, `set_message_starred`, `delete_message_for_recipient`: Re-defined to enforce active organization membership.
+- `get_inbox_unread_count`: Re-defined to query through `recipient_inbox_messages`.
+
 ---
 
 ## 5. Migration Workflow

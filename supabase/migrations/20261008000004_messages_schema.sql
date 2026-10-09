@@ -31,6 +31,10 @@ CREATE TABLE IF NOT EXISTS public.messages (
   -- Bounded ciphertext: max 32KB Base64 (~24KB binary payload, ample for ~4,000 chars)
   CONSTRAINT ciphertext_size_check CHECK (
     length(trim(ciphertext)) >= 48 AND length(ciphertext) <= 32768
+  ),
+  -- Enforce valid Base64 character set
+  CONSTRAINT ciphertext_format_check CHECK (
+    ciphertext ~ '^[A-Za-z0-9+/=]+$'
   )
 );
 
@@ -60,32 +64,12 @@ CREATE INDEX IF NOT EXISTS idx_messages_key_id
 -- ------------------------------------------------------------------------------
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
--- CRITICAL PRIVACY BOUNDARY:
--- Revoke direct SELECT on base messages table from authenticated and anon roles!
--- Recipients will read strictly through the security barrier view in Prompt 008.
-REVOKE SELECT ON public.messages FROM authenticated;
-REVOKE ALL ON public.messages FROM anon;
-
--- INSERT: Authenticated users can insert rows where sender_id matches their session.
-CREATE POLICY messages_insert_authenticated
-  ON public.messages
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    sender_id = auth.uid()
-  );
-
--- UPDATE: Only recipient can update message status (read, starred, soft-delete).
-CREATE POLICY messages_update_recipient
-  ON public.messages
-  FOR UPDATE
-  TO authenticated
-  USING (
-    recipient_id = auth.uid()
-  )
-  WITH CHECK (
-    recipient_id = auth.uid()
-  );
+-- CRITICAL PRIVACY & INTEGRITY BOUNDARIES:
+-- Revoke ALL direct table operations (SELECT, INSERT, UPDATE, DELETE) on base messages table
+-- from authenticated and anon roles!
+-- Message writes are mediated EXCLUSIVELY via SECURITY DEFINER procedure send_anonymous_message.
+-- Message reads and state mutations will be mediated via security barrier views / procedures in Prompt 008.
+REVOKE ALL ON public.messages FROM anon, authenticated;
 
 -- ------------------------------------------------------------------------------
 -- 4. Stored Procedure: send_anonymous_message
@@ -119,7 +103,10 @@ BEGIN
     RAISE EXCEPTION 'UNAUTHENTICATED: No active authenticated session';
   END IF;
 
-  -- 2. Prevent self-messaging
+  -- 2. Prevent concurrent rate-limit race conditions by serializing requests per sender
+  PERFORM pg_advisory_xact_lock(hashtext(v_sender_id::text));
+
+  -- 3. Prevent self-messaging
   IF v_sender_id = p_recipient_id THEN
     RAISE EXCEPTION 'INVALID_RECIPIENT: You cannot send an anonymous message to yourself';
   END IF;
@@ -214,5 +201,5 @@ $$;
 -- ------------------------------------------------------------------------------
 -- 5. Privileges
 -- ------------------------------------------------------------------------------
-GRANT INSERT, UPDATE ON public.messages TO authenticated;
+-- Direct table access revoked; only procedure execution is granted to authenticated
 GRANT EXECUTE ON FUNCTION public.send_anonymous_message(UUID, UUID, TEXT, INTEGER) TO authenticated;

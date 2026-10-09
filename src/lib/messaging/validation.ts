@@ -23,9 +23,37 @@ export const sendMessagePayloadSchema = z.object({
     .string()
     .trim()
     .min(CRYPTO_CONSTANTS.SEAL_OVERHEAD_BYTES, "Ciphertext payload is too short")
-    .max(32768, "Ciphertext payload exceeds 32KB size limit"),
+    .max(32768, "Ciphertext payload exceeds 32KB size limit")
+    .regex(/^[A-Za-z0-9+/=]+$/, "Ciphertext payload must be a valid Base64 string"),
   protocolVersion: z.literal(CRYPTO_CONSTANTS.PROTOCOL_VERSION),
   alg: z.literal(CRYPTO_CONSTANTS.ALGORITHM),
 });
 
 export type SendMessagePayload = z.infer<typeof sendMessagePayloadSchema>;
+
+/**
+ * Inbox pagination query validation schema.
+ */
+export const getInboxInputSchema = z.object({
+  cursor: z
+    .string()
+    .datetime({ offset: true, message: "Invalid cursor timestamp format" })
+    .optional()
+    .nullable(),
+  limit: z.number().int().min(1).max(50).default(20).optional(),
+});
+
+export type GetInboxInputPayload = z.infer<typeof getInboxInputSchema>;
+
+/**
+ * Message action identifier validation schema.
+ */
+export const messageIdSchema = z.string().uuid("Invalid message identifier");
+
+/**
+ * Message star state update validation schema.
+ */
+export const setMessageStarredSchema = z.object({
+  messageId: z.string().uuid("Invalid message identifier"),
+  isStarred: z.boolean(),
+});

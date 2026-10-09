@@ -29,7 +29,7 @@ export function OnboardingForm({
     <form action={formAction} className="space-y-6">
       {state?.error && (
         <div
-          className="rounded-md border border-red-200 bg-red-50/50 p-3 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400"
+          className="rounded-[8px] border border-[#f97066]/30 bg-[#ffe8e6] dark:bg-[#3a1512] p-3 text-xs text-[#b42318] dark:text-[#f97066]"
           role="alert"
         >
           {state.error}
@@ -46,7 +46,7 @@ export function OnboardingForm({
             onChange={(e) => setDisplayName(e.target.value)}
             required
             placeholder="e.g. Jane Doe"
-            helperText="How other members of the organization will see your name."
+            helperText="How other members will see your name across the directory."
           />
         </div>
 
@@ -59,7 +59,7 @@ export function OnboardingForm({
             onChange={(e) => setUsername(e.target.value.toLowerCase())}
             required
             placeholder="e.g. jdoe"
-            helperText="3 to 30 characters. Lowercase letters, numbers, hyphens, dots, and underscores."
+            helperText="3 to 30 characters. Lowercase letters, numbers, hyphens, and dots."
           />
         </div>
       </div>
@@ -67,6 +67,7 @@ export function OnboardingForm({
       <div className="pt-2">
         <Button
           type="submit"
+          variant="primary"
           size="lg"
           isLoading={isPending}
           className="w-full justify-center"

@@ -39,8 +39,18 @@ test.describe("Application Foundation Smoke Tests", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test("redirects unauthenticated user accessing /onboarding to /login", async ({ page }) => {
-    await page.goto("/onboarding");
+  test("redirects unauthenticated user accessing /inbox to /login", async ({ page }) => {
+    await page.goto("/inbox");
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("redirects unauthenticated user accessing /app/inbox to /login", async ({ page }) => {
+    await page.goto("/app/inbox");
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("redirects unauthenticated user accessing /settings to /login", async ({ page }) => {
+    await page.goto("/settings");
     await expect(page).toHaveURL(/\/login/);
   });
 });

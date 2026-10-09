@@ -32,10 +32,11 @@ describe("Database Migration: Messages Schema & Security Invariants", () => {
       expect(migrationSql).not.toMatch(/^\s*body\s+/im);
     });
 
-    it("enforces constraints: distinct sender/recipient, protocol version, ciphertext size", () => {
+    it("enforces constraints: distinct sender/recipient, protocol version, ciphertext size & format", () => {
       expect(migrationSql).toContain("CONSTRAINT sender_recipient_distinct_check CHECK (sender_id <> recipient_id)");
       expect(migrationSql).toContain("CONSTRAINT protocol_version_check CHECK (protocol_version = 1)");
       expect(migrationSql).toContain("CONSTRAINT ciphertext_size_check CHECK");
+      expect(migrationSql).toContain("CONSTRAINT ciphertext_format_check CHECK");
       expect(migrationSql).toContain("length(trim(ciphertext)) >= 48");
       expect(migrationSql).toContain("length(ciphertext) <= 32768");
     });
@@ -58,20 +59,11 @@ describe("Database Migration: Messages Schema & Security Invariants", () => {
       expect(migrationSql).toContain("ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;");
     });
 
-    it("strictly revokes direct SELECT on messages table from authenticated role", () => {
-      // Prevents recipients from querying sender_id directly from the base table
-      expect(migrationSql).toContain("REVOKE SELECT ON public.messages FROM authenticated;");
-      expect(migrationSql).toContain("REVOKE ALL ON public.messages FROM anon;");
-    });
-
-    it("restricts INSERT to rows where sender_id matches auth.uid()", () => {
-      expect(migrationSql).toContain("CREATE POLICY messages_insert_authenticated");
-      expect(migrationSql).toContain("WITH CHECK (\n    sender_id = auth.uid()\n  )");
-    });
-
-    it("restricts UPDATE to recipient_id matching auth.uid()", () => {
-      expect(migrationSql).toContain("CREATE POLICY messages_update_recipient");
-      expect(migrationSql).toContain("recipient_id = auth.uid()");
+    it("strictly revokes all direct table operations (SELECT, INSERT, UPDATE, DELETE) from authenticated and anon roles", () => {
+      // Prevents clients from querying sender_id or bypassing send_anonymous_message stored procedure
+      expect(migrationSql).toContain("REVOKE ALL ON public.messages FROM anon, authenticated;");
+      expect(migrationSql).not.toContain("GRANT INSERT, UPDATE ON public.messages TO authenticated;");
+      expect(migrationSql).not.toContain("CREATE POLICY messages_insert_authenticated");
     });
   });
 
@@ -80,6 +72,10 @@ describe("Database Migration: Messages Schema & Security Invariants", () => {
       expect(migrationSql).toContain("CREATE OR REPLACE FUNCTION public.send_anonymous_message");
       expect(migrationSql).toContain("SECURITY DEFINER");
       expect(migrationSql).toContain("SET search_path = public, pg_temp");
+    });
+
+    it("acquires advisory transaction lock to serialize sender requests and prevent race conditions", () => {
+      expect(migrationSql).toContain("PERFORM pg_advisory_xact_lock(hashtext(v_sender_id::text));");
     });
 
     it("derives sender strictly from auth.uid()", () => {

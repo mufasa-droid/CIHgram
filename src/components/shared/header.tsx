@@ -1,24 +1,33 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
+import { Button } from "@/components/ui/button";
 
 export function Header() {
   return (
-    <header className="w-full border-b border-zinc-200/60 bg-white/70 backdrop-blur-sm dark:border-zinc-800/60 dark:bg-black/70">
+    <header className="sticky top-0 z-40 w-full border-b border-[#ebebeb] bg-white/85 backdrop-blur-md dark:border-white/[0.08] dark:bg-[#0a0a0b]/85 transition-colors">
       <Container size="lg">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-14 items-center justify-between">
           <Link
             href="/"
-            className="text-sm font-semibold tracking-tight text-zinc-950 hover:text-zinc-700 dark:text-zinc-50 dark:hover:text-zinc-300 transition-colors"
+            className="flex items-center gap-2.5 text-sm font-semibold tracking-[-0.01em] text-[#111111] hover:text-[#0070e0] dark:text-[#f4f4f2] dark:hover:text-[#4193f5] transition-colors"
           >
-            CIH Messenger
+            <div className="flex h-6 w-6 items-center justify-center rounded-[6px] bg-[#0070e0] text-[11px] font-bold text-white shadow-xs">
+              C
+            </div>
+            <span>CIH Messenger</span>
           </Link>
 
-          <nav className="flex items-center gap-6 text-xs font-medium tracking-tight">
+          <nav className="flex items-center gap-4 text-xs font-medium">
             <Link
               href="/login"
-              className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+              className="text-[#6b6b6b] hover:text-[#111111] dark:text-[#8f8f8a] dark:hover:text-[#f4f4f2] transition-colors"
             >
               Sign In
+            </Link>
+            <Link href="/login">
+              <Button variant="inverse" size="sm">
+                Get Started
+              </Button>
             </Link>
           </nav>
         </div>

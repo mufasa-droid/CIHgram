@@ -83,6 +83,21 @@ describe("Messaging Input & Envelope Validation", () => {
       ).toBe(false);
     });
 
+    it("rejects non-Base64 ciphertext characters", () => {
+      expect(
+        sendMessagePayloadSchema.safeParse({
+          ...validPayload,
+          ciphertext: "A".repeat(50) + "!!@@##$$",
+        }).success
+      ).toBe(false);
+      expect(
+        sendMessagePayloadSchema.safeParse({
+          ...validPayload,
+          ciphertext: "Invalid characters with whitespace in the middle " + "A".repeat(40),
+        }).success
+      ).toBe(false);
+    });
+
     it("rejects unsupported protocol versions", () => {
       expect(
         sendMessagePayloadSchema.safeParse({ ...validPayload, protocolVersion: 2 }).success
