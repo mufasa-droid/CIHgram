@@ -19,6 +19,7 @@ describe("Prompt 007B: Migration & Admission Safety Invariant Checks", () => {
     "20261008000007_harden_inbox_organization_boundary.sql",
     "20261008000008_public_profile_identifiers.sql",
     "20261008000009_blocks_schema.sql",
+    "20261008000010_reports_schema.sql",
   ];
 
   const completeSetupSql = fs.readFileSync(completeSetupPath, "utf-8");
@@ -200,5 +201,39 @@ describe("Prompt 007B: Migration & Admission Safety Invariant Checks", () => {
       expect(migration9Sql).toContain("RAISE EXCEPTION 'RECIPIENT_UNAVAILABLE: Unable to deliver message to recipient'");
     });
   });
+
+  describe("7. Migration 10: Reports Schema & create_message_report Invariants", () => {
+    const migration10Path = path.join(migrationsDir, "20261008000010_reports_schema.sql");
+    const migration10Sql = fs.readFileSync(migration10Path, "utf-8");
+
+    it("verifies public.reports table has correct constraints and indexes", () => {
+      expect(migration10Sql).toContain("CREATE TABLE IF NOT EXISTS public.reports");
+      expect(migration10Sql).toContain("CONSTRAINT reports_no_self_report CHECK (reporter_id <> reported_user_id)");
+      expect(migration10Sql).toContain("CONSTRAINT reports_unique_message_reporter UNIQUE (message_id, reporter_id)");
+      expect(migration10Sql).toContain("CONSTRAINT reports_plaintext_consent_check CHECK (disclosed_plaintext IS NULL OR disclosed_plaintext_consent = true)");
+      expect(migration10Sql).toContain("CREATE INDEX IF NOT EXISTS idx_reports_org_status");
+      expect(migration10Sql).toContain("CREATE INDEX IF NOT EXISTS idx_reports_message");
+      expect(migration10Sql).toContain("CREATE INDEX IF NOT EXISTS idx_reports_reporter");
+      expect(migration10Sql).toContain("CREATE INDEX IF NOT EXISTS idx_reports_reported_user");
+    });
+
+    it("ensures public.reports table direct access is completely revoked from public, anon, and authenticated", () => {
+      expect(migration10Sql).toContain("ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;");
+      expect(migration10Sql).toContain("REVOKE ALL ON public.reports FROM PUBLIC, anon, authenticated;");
+    });
+
+    it("verifies create_message_report enforces security definer with fixed search path, rate limiting, and advisory locking", () => {
+      expect(migration10Sql).toContain("CREATE OR REPLACE FUNCTION public.create_message_report");
+      expect(migration10Sql).toContain("SECURITY DEFINER");
+      expect(migration10Sql).toContain("SET search_path = public, pg_temp");
+      expect(migration10Sql).toContain("RATE_LIMITED: You have submitted too many reports recently");
+      expect(migration10Sql).toContain("pg_advisory_xact_lock");
+      expect(migration10Sql).toContain("DUPLICATE_REPORT: You have already submitted a report for this message.");
+      expect(migration10Sql).toContain("MESSAGE_NOT_FOUND: Message not found or caller is not authorized recipient");
+      expect(migration10Sql).toContain("REVOKE ALL ON FUNCTION public.create_message_report FROM PUBLIC, anon;");
+      expect(migration10Sql).toContain("GRANT EXECUTE ON FUNCTION public.create_message_report TO authenticated;");
+    });
+  });
 });
+
 

@@ -200,37 +200,61 @@ export type Database = {
           id: string;
           organization_id: string;
           reporter_id: string;
-          reported_message_id: string;
           reported_user_id: string;
-          reason: string;
-          disclosed_content: string;
-          status: "pending" | "resolved" | "dismissed";
+          message_id: string;
+          category:
+            | "harassment"
+            | "threats"
+            | "spam"
+            | "inappropriate_content"
+            | "impersonation"
+            | "other";
+          details: string | null;
+          disclosed_plaintext: string | null;
+          disclosed_plaintext_consent: boolean;
+          status: "pending" | "investigating" | "resolved" | "dismissed";
           created_at: string;
-          resolved_at: string | null;
+          updated_at: string;
         };
         Insert: {
           id?: string;
           organization_id: string;
           reporter_id: string;
-          reported_message_id: string;
           reported_user_id: string;
-          reason: string;
-          disclosed_content: string;
-          status?: "pending" | "resolved" | "dismissed";
+          message_id: string;
+          category:
+            | "harassment"
+            | "threats"
+            | "spam"
+            | "inappropriate_content"
+            | "impersonation"
+            | "other";
+          details?: string | null;
+          disclosed_plaintext?: string | null;
+          disclosed_plaintext_consent?: boolean;
+          status?: "pending" | "investigating" | "resolved" | "dismissed";
           created_at?: string;
-          resolved_at?: string | null;
+          updated_at?: string;
         };
         Update: {
           id?: string;
           organization_id?: string;
           reporter_id?: string;
-          reported_message_id?: string;
           reported_user_id?: string;
-          reason?: string;
-          disclosed_content?: string;
-          status?: "pending" | "resolved" | "dismissed";
+          message_id?: string;
+          category?:
+            | "harassment"
+            | "threats"
+            | "spam"
+            | "inappropriate_content"
+            | "impersonation"
+            | "other";
+          details?: string | null;
+          disclosed_plaintext?: string | null;
+          disclosed_plaintext_consent?: boolean;
+          status?: "pending" | "investigating" | "resolved" | "dismissed";
           created_at?: string;
-          resolved_at?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -424,6 +448,16 @@ export type Database = {
           avatar_url: string | null;
           blocked_at: string;
         }[];
+      };
+      create_message_report: {
+        Args: {
+          p_message_id: string;
+          p_category: string;
+          p_details?: string | null;
+          p_disclose_plaintext?: boolean;
+          p_disclosed_plaintext?: string | null;
+        };
+        Returns: Json;
       };
     };
 

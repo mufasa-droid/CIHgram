@@ -143,6 +143,36 @@ Stores directional user block relationships within an organization tenant.
 - `idx_blocks_organization`: B-Tree index on `(organization_id)`.
 - **Security & Privacy Guarantee**: Direct client table access is REVOKED. Managed strictly via controlled RPCs (`block_user`, `block_message_sender`, `unblock_user`, `get_blocked_users`).
 
+### 2.7 `public.reports`
+
+Stores user-submitted abuse reports for received messages. Supports optional explicit evidence disclosure.
+
+| Column | Type | Nullable | Default | Description |
+| :--- | :--- | :---: | :--- | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | Primary Key |
+| `organization_id` | `UUID` | No | — | FK `public.organizations(id)` ON DELETE CASCADE |
+| `reporter_id` | `UUID` | No | — | FK `public.profiles(id)` ON DELETE CASCADE (internal auth UUID) |
+| `reported_user_id` | `UUID` | No | — | FK `public.profiles(id)` ON DELETE CASCADE (sender resolved internally) |
+| `message_id` | `UUID` | No | — | FK `public.messages(id)` ON DELETE CASCADE |
+| `category` | `TEXT` | No | — | Report category (`harassment`, `threats`, `spam`, `inappropriate_content`, `impersonation`, `other`) |
+| `details` | `TEXT` | Yes | `NULL` | Optional reporter explanation (max 1000 chars) |
+| `disclosed_plaintext` | `TEXT` | Yes | `NULL` | Optional decrypted plaintext submitted with explicit consent (max 2000 chars) |
+| `disclosed_plaintext_consent` | `BOOLEAN` | No | `false` | Explicit consent flag |
+| `status` | `TEXT` | No | `'pending'` | Moderation queue status (`pending`, `investigating`, `resolved`, `dismissed`) |
+| `created_at` | `TIMESTAMPTZ` | No | `NOW()` | Timestamp report created |
+| `updated_at` | `TIMESTAMPTZ` | No | `NOW()` | Timestamp last modified |
+
+**Constraints & Indexes**:
+- `reports_no_self_report`: `CHECK (reporter_id <> reported_user_id)` (prohibits reporting self).
+- `reports_unique_message_reporter`: `UNIQUE (message_id, reporter_id)` (enforces one-report-per-message DB boundary).
+- `reports_plaintext_consent_check`: `CHECK (disclosed_plaintext IS NULL OR disclosed_plaintext_consent = true)`.
+- `idx_reports_org_status`: B-Tree index on `(organization_id, status, created_at DESC)`.
+- `idx_reports_message`: B-Tree index on `(message_id)`.
+- `idx_reports_reporter`: B-Tree index on `(reporter_id, created_at DESC)`.
+- `idx_reports_reported_user`: B-Tree index on `(reported_user_id, created_at DESC)`.
+- **Security & Privacy Guarantee**: Direct table access REVOKED from `PUBLIC`, `anon`, and `authenticated`. Mediated exclusively via `create_message_report`. Normal message storage remains 100% ciphertext-only.
+
+
 
 ---
 
@@ -233,6 +263,12 @@ In PostgreSQL RLS, checking a user's membership in a table policy (e.g., in `pro
 - `unblock_user(p_target_public_id UUID)`: Removes only the authenticated user's own block of the target.
 - `get_blocked_users()`: Returns caller's block list projected strictly as safe public attributes (`public_id, username, display_name, avatar_url, blocked_at`).
 - `send_anonymous_message`: Updated with deterministic dual-party advisory locking and bidirectional block check (`A blocks B` OR `B blocks A`). Returns generic `RECIPIENT_UNAVAILABLE` to eliminate oracle attacks.
+
+### 4.9 Abuse Reporting & Explicit Evidence Disclosure (`20261008000010_reports_schema.sql`)
+- `public.reports`: Created table with `CHECK (reporter_id <> reported_user_id)`, `UNIQUE (message_id, reporter_id)`, and `CHECK (disclosed_plaintext IS NULL OR disclosed_plaintext_consent = true)`.
+- `create_message_report`: Security-definer procedure accepting message ID, category, optional details (max 1000 chars), and optional disclosed plaintext (max 2000 chars) with explicit consent flag.
+- Enforces recipient authorization (`m.recipient_id = auth.uid()`), organization boundary, reporter sliding-window rate limit (10/hr), and advisory locking.
+- Returns `{ success: true, report_id }` with zero sender identity exposure. Direct table access is completely revoked from public, anon, and authenticated roles.
 
 ---
 

@@ -140,6 +140,15 @@ All message mutations are server-authorized and strictly verify `recipient_id = 
 - Prospective only: does NOT modify or automatically delete existing messages from the inbox, eliminating block-as-an-oracle deanonymization attacks.
 - UI requires explicit user confirmation prior to execution.
 
+### 5.5 Report Anonymous Message (`reportMessageAction`)
+- Stored procedure `create_message_report(p_message_id, p_category, p_details, p_disclose_plaintext, p_disclosed_plaintext)`.
+- Validates caller is the recipient of the referenced message.
+- Curated categories: harassment, threats, spam, inappropriate content, impersonation, other.
+- Optional reporter context (up to 1000 characters).
+- Optional, unchecked-by-default explicit plaintext disclosure checkbox: attaches locally decrypted plaintext strictly with user consent for moderator review.
+- Enforces duplicate report prevention (`UNIQUE (message_id, reporter_id)`) and rate limits (10/hr).
+- Zero sender identity leakage to reporter.
+
 ---
 
 ## 6. Pagination, Performance & Memory Lifecycle

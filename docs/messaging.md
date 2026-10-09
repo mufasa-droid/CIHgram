@@ -132,5 +132,5 @@ Mutation is handled atomically by `send_anonymous_message`:
 ## 8. Deferred Work
 
 - **User Blocking**: Fully implemented in Prompt 010B (Migration 9).
-- **Abuse Reporting & Evidence Disclosure**: Scheduled for subsequent phases (Prompt 011).
-- **Moderation Action Dashboard & Sanctions**: Scheduled for subsequent phases.
+- **Abuse Reporting & Evidence Disclosure**: Fully implemented in Prompt 010C (Migration 10).
+- **Moderation Actions & Sanctions**: Scheduled for Prompt 010D.

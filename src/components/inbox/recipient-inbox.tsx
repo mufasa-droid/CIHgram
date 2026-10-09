@@ -12,6 +12,7 @@ import {
   Inbox as InboxIcon,
   Users,
   ShieldOff,
+  Flag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ import {
   deleteMessageAction,
 } from "@/lib/messaging/actions";
 import { blockMessageSenderAction } from "@/lib/blocking/actions";
+import { ReportMessageDialog } from "./report-message-dialog";
 import { restoreIdentity } from "@/lib/crypto/identity";
 import type {
   RecipientInboxMessage,
@@ -70,6 +72,7 @@ export function RecipientInbox({
   const [blockConfirmId, setBlockConfirmId] = React.useState<string | null>(null);
   const [isBlockingId, setIsBlockingId] = React.useState<string | null>(null);
   const [blockNotification, setBlockNotification] = React.useState<string | null>(null);
+  const [reportingMessage, setReportingMessage] = React.useState<DecryptedInboxMessage | null>(null);
 
   // Recovery phrase input state
   const [recoveryPhrase, setRecoveryPhrase] = React.useState<string>("");
@@ -637,6 +640,21 @@ export function RecipientInbox({
                     >
                       <ShieldOff className="h-4 w-4" aria-hidden="true" />
                     </button>
+
+                    {/* Report message button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBlockConfirmId(null);
+                        setDeleteConfirmId(null);
+                        setReportingMessage(message);
+                      }}
+                      className="p-1 rounded-[6px] text-[#6b6b6b] hover:text-[#b42318] dark:text-[#8f8f8a] dark:hover:text-[#f97066] transition-colors"
+                      title="Report message"
+                      aria-label="Report message to moderators"
+                    >
+                      <Flag className="h-4 w-4" aria-hidden="true" />
+                    </button>
                   </div>
                 </div>
 
@@ -783,6 +801,23 @@ export function RecipientInbox({
             </div>
           )}
         </div>
+      )}
+
+      {/* Report Message Dialog */}
+      {reportingMessage && (
+        <ReportMessageDialog
+          messageId={reportingMessage.id}
+          decryptedPlaintext={
+            reportingMessage.decryptionStatus === "decrypted"
+              ? reportingMessage.plaintext
+              : null
+          }
+          isOpen={Boolean(reportingMessage)}
+          onClose={() => setReportingMessage(null)}
+          onReportSubmitted={() => {
+            setBlockNotification("Your report has been submitted to organization moderators for review.");
+          }}
+        />
       )}
     </div>
   );

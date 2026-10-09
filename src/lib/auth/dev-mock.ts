@@ -138,3 +138,12 @@ export const DEV_MOCK_KEY_STATUS: UserKeyStatus = {
 
 export const DEV_MOCK_BLOCKED_USERS: BlockedUser[] = [];
 
+export const DEV_MOCK_REPORTS: Array<{
+  id: string;
+  messageId: string;
+  category: string;
+  details: string | null;
+  disclosedPlaintext: string | null;
+}> = [];
+
+
